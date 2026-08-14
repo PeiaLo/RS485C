@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://rs485c/device.schema.json",
+  "title": "RS485_C 設備描述",
+  "description": "末端傳感器模組各自儲存一份；中繼器儲存所有已知設備的這種描述以辨識下層。此為『設備身分/能力』描述，與逐次上報的量測 payload 不同。",
+  "type": "object",
+  "required": ["type", "model", "measurements"],
+  "properties": {
+    "type": {
+      "type": "string",
+      "description": "設備型別代碼，對應量測 payload 的 t 欄位，例如 TMP(溫度)、PRS(壓力)、DO(數位輸出)。",
+      "examples": ["TMP", "PRS", "DO"]
+    },
+    "model": { "type": "string", "description": "型號字串" },
+    "vendor": { "type": "string", "description": "廠商" },
+    "fw": { "type": "string", "description": "韌體版本" },
+    "role": {
+      "type": "string",
+      "enum": ["sensor", "output", "relay-node"],
+      "description": "sensor=只讀量測；output=可被規則引擎驅動；relay-node=中繼器",
+      "default": "sensor"
+    },
+    "measurements": {
+      "type": "array",
+      "description": "此設備提供的量測/通道清單",
+      "items": {
+        "type": "object",
+        "required": ["key", "unit"],
+        "properties": {
+          "key": { "type": "string", "description": "量測欄位鍵，對應 payload 的 v 或多值鍵", "examples": ["v"] },
+          "unit": { "type": "string", "examples": ["C", "kPa", "%RH"] },
+          "min": { "type": "number", "description": "量程下限" },
+          "max": { "type": "number", "description": "量程上限" },
+          "resolution": { "type": "number", "description": "解析度" }
+        }
+      }
+    },
+    "calibration": {
+      "type": "object",
+      "description": "校正參數（線性 slope/offset 或其他）",
+      "properties": {
+        "slope": { "type": "number", "default": 1 },
+        "offset": { "type": "number", "default": 0 }
+      }
+    },
+    "poll": {
+      "type": "object",
+      "description": "輪詢相關提示（供中繼器參考）",
+      "properties": {
+        "timeout_ms": { "type": "integer", "description": "此設備回應逾時上限", "default": 200 }
+      }
+    }
+  }
+}

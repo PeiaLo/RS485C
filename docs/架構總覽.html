@@ -1,0 +1,434 @@
+<title>RS485_C · 系統架構總覽</title>
+<style>
+  :root {
+    --ground: #f4f6f7;
+    --panel: #ffffff;
+    --panel-2: #eef2f3;
+    --ink: #1b2530;
+    --ink-2: #4b5a68;
+    --ink-3: #7c8b98;
+    --line: #d3dbe0;
+    --accent: #0f9d8f;
+    --accent-soft: #d3ede9;
+    --wire: #3d6ea5;
+    --fresh: #2c9e5f;
+    --stale: #cf8a1e;
+    --mono: ui-monospace, "Cascadia Code", "Cascadia Mono", Consolas, monospace;
+    --sans: "Segoe UI", "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", system-ui, sans-serif;
+    --maxw: 62rem;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #12161b;
+      --panel: #1a2029;
+      --panel-2: #212a34;
+      --ink: #dbe4ec;
+      --ink-2: #a3b1bf;
+      --ink-3: #6c7c8a;
+      --line: #2c3742;
+      --accent: #23b7a7;
+      --accent-soft: #16332f;
+      --wire: #6ea0d6;
+      --fresh: #45c07a;
+      --stale: #e0a343;
+    }
+  }
+  :root[data-theme="light"] {
+    --ground: #f4f6f7; --panel: #ffffff; --panel-2: #eef2f3; --ink: #1b2530;
+    --ink-2: #4b5a68; --ink-3: #7c8b98; --line: #d3dbe0; --accent: #0f9d8f;
+    --accent-soft: #d3ede9; --wire: #3d6ea5; --fresh: #2c9e5f; --stale: #cf8a1e;
+  }
+  :root[data-theme="dark"] {
+    --ground: #12161b; --panel: #1a2029; --panel-2: #212a34; --ink: #dbe4ec;
+    --ink-2: #a3b1bf; --ink-3: #6c7c8a; --line: #2c3742; --accent: #23b7a7;
+    --accent-soft: #16332f; --wire: #6ea0d6; --fresh: #45c07a; --stale: #e0a343;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--ground); color: var(--ink);
+    font-family: var(--sans); line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: clamp(1.2rem, 4vw, 3rem); }
+
+  /* header */
+  header { border-bottom: 1px solid var(--line); padding-bottom: 1.6rem; margin-bottom: 2.4rem; }
+  .kicker {
+    font-family: var(--mono); font-size: .72rem; letter-spacing: .22em; text-transform: uppercase;
+    color: var(--accent); margin: 0 0 .7rem;
+  }
+  h1 { font-size: clamp(1.7rem, 4.5vw, 2.6rem); line-height: 1.12; margin: 0 0 .6rem; font-weight: 680; letter-spacing: -.01em; text-wrap: balance; }
+  .lede { color: var(--ink-2); font-size: 1.05rem; max-width: 46rem; margin: 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1.2rem; }
+  .chip {
+    font-family: var(--mono); font-size: .74rem; padding: .28rem .6rem; border-radius: 999px;
+    background: var(--panel-2); border: 1px solid var(--line); color: var(--ink-2);
+  }
+
+  section { margin: 2.6rem 0; }
+  h2 {
+    font-size: 1.3rem; margin: 0 0 .3rem; font-weight: 640; letter-spacing: -.01em;
+    display: flex; align-items: baseline; gap: .6rem;
+  }
+  h2 .n { font-family: var(--mono); font-size: .82rem; color: var(--accent); font-weight: 600; }
+  .sub { color: var(--ink-3); font-size: .92rem; margin: 0 0 1.2rem; }
+
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1.3rem; }
+  figure { margin: 0; }
+  figure svg { display: block; width: 100%; height: auto; }
+  figcaption { font-size: .82rem; color: var(--ink-3); margin-top: .7rem; font-family: var(--mono); }
+  .scroll { overflow-x: auto; }
+
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 1rem; }
+  .mini { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 1rem 1.1rem; }
+  .mini h3 { margin: 0 0 .3rem; font-size: 1rem; display: flex; align-items: center; gap: .5rem; }
+  .mini .tag { font-family: var(--mono); font-size: .68rem; padding: .12rem .45rem; border-radius: 5px; background: var(--accent-soft); color: var(--accent); border: 1px solid transparent; }
+  .mini p { margin: .2rem 0 0; font-size: .9rem; color: var(--ink-2); }
+  .role { font-family: var(--mono); font-size: .74rem; color: var(--ink-3); }
+
+  table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+  th, td { text-align: left; padding: .55rem .7rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  td code, .m { font-family: var(--mono); font-size: .85em; background: var(--panel-2); padding: .08rem .35rem; border-radius: 4px; }
+
+  .stages { display: grid; gap: .7rem; }
+  .stage { display: grid; grid-template-columns: auto 1fr; gap: 1rem; align-items: start; background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 8px; padding: .9rem 1.1rem; }
+  .stage .id { font-family: var(--mono); font-size: .8rem; color: var(--accent); font-weight: 600; padding-top: .1rem; white-space: nowrap; }
+  .stage h4 { margin: 0 0 .2rem; font-size: .98rem; }
+  .stage p { margin: 0; font-size: .88rem; color: var(--ink-2); }
+
+  .callout { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 1.1rem 1.3rem; }
+  .callout ul { margin: .5rem 0 0; padding-left: 1.1rem; }
+  .callout li { margin: .3rem 0; font-size: .92rem; color: var(--ink-2); }
+  .callout li b { color: var(--ink); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 1.1rem; font-size: .8rem; color: var(--ink-2); margin-top: .8rem; font-family: var(--mono); }
+  .legend span { display: inline-flex; align-items: center; gap: .4rem; }
+  .sw { width: 22px; height: 3px; border-radius: 2px; display: inline-block; }
+
+  footer { margin-top: 3rem; padding-top: 1.4rem; border-top: 1px solid var(--line); color: var(--ink-3); font-size: .82rem; }
+  footer code { font-family: var(--mono); }
+  a { color: var(--accent); }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="kicker">RS485_C · 系統架構總覽</p>
+    <h1>多層樹狀傳感器網路</h1>
+    <p class="lede">以 RS485 為骨幹，PC 在頂、多層中繼器居中、末端接各類傳感器。下層持續輪詢並快取，上層要求才回傳 —— 把 PC 讀取速度與匯流排速度解耦。最終用於工廠端即時資料收集與條件式自動控制。</p>
+    <div class="chips">
+      <span class="chip">RS485 multidrop</span>
+      <span class="chip">樹狀分層</span>
+      <span class="chip">7 階指撥定址</span>
+      <span class="chip">\n 未完 · \r 完成</span>
+      <span class="chip">輪詢 + cache</span>
+      <span class="chip">MicroPython · Arduino</span>
+    </div>
+  </header>
+
+  <!-- 1 · TOPOLOGY -->
+  <section>
+    <h2><span class="n">01</span> 拓樸</h2>
+    <p class="sub">每一「層」是一條獨立的 RS485 匯流排；中繼器把上下兩條匯流排橋接起來 —— 對上層是 slave，對下層是 master。</p>
+    <div class="card scroll">
+      <figure>
+        <svg viewBox="0 0 760 340" role="img" aria-label="PC 在頂，往下經多層中繼器連到末端傳感器的樹狀拓樸圖">
+          <defs>
+            <marker id="dot" markerWidth="6" markerHeight="6" refX="3" refY="3"><circle cx="3" cy="3" r="2.4" fill="var(--wire)"/></marker>
+          </defs>
+          <!-- PC -->
+          <rect x="300" y="16" width="160" height="46" rx="8" fill="var(--accent-soft)" stroke="var(--accent)"/>
+          <text x="380" y="38" text-anchor="middle" font-family="var(--sans)" font-size="15" font-weight="700" fill="var(--ink)">PC 上位機</text>
+          <text x="380" y="54" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--ink-2)">頂層 · 5V · 未來 Ethernet/WiFi</text>
+
+          <!-- bus L1 -->
+          <line x1="380" y1="62" x2="380" y2="86" stroke="var(--wire)" stroke-width="2"/>
+          <line x1="150" y1="86" x2="610" y2="86" stroke="var(--wire)" stroke-width="2"/>
+          <text x="620" y="90" font-family="var(--mono)" font-size="10" fill="var(--ink-3)">第1層 bus</text>
+          <line x1="220" y1="86" x2="220" y2="106" stroke="var(--wire)" stroke-width="2" marker-end="url(#dot)"/>
+          <line x1="540" y1="86" x2="540" y2="106" stroke="var(--wire)" stroke-width="2" marker-end="url(#dot)"/>
+
+          <!-- L1 repeaters -->
+          <g font-family="var(--sans)">
+            <rect x="150" y="108" width="140" height="42" rx="7" fill="var(--panel-2)" stroke="var(--wire)"/>
+            <text x="220" y="126" text-anchor="middle" font-size="13" font-weight="650" fill="var(--ink)">中繼器</text>
+            <text x="220" y="141" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--accent)">本地=1</text>
+
+            <rect x="470" y="108" width="140" height="42" rx="7" fill="var(--panel-2)" stroke="var(--wire)"/>
+            <text x="540" y="126" text-anchor="middle" font-size="13" font-weight="650" fill="var(--ink)">中繼器</text>
+            <text x="540" y="141" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--accent)">本地=2</text>
+          </g>
+
+          <!-- bus L2 under repeater 1 -->
+          <line x1="220" y1="150" x2="220" y2="172" stroke="var(--wire)" stroke-width="2"/>
+          <line x1="70" y1="172" x2="330" y2="172" stroke="var(--wire)" stroke-width="2"/>
+          <text x="70" y="166" font-family="var(--mono)" font-size="10" fill="var(--ink-3)">第2層 bus</text>
+          <line x1="110" y1="172" x2="110" y2="192" stroke="var(--wire)" stroke-width="2" marker-end="url(#dot)"/>
+          <line x1="220" y1="172" x2="220" y2="192" stroke="var(--wire)" stroke-width="2" marker-end="url(#dot)"/>
+          <line x1="310" y1="172" x2="310" y2="192" stroke="var(--wire)" stroke-width="2" marker-end="url(#dot)"/>
+
+          <!-- L2 nodes: a repeater + two terminals -->
+          <g font-family="var(--sans)">
+            <rect x="52" y="194" width="116" height="40" rx="7" fill="var(--panel-2)" stroke="var(--wire)"/>
+            <text x="110" y="211" text-anchor="middle" font-size="12" font-weight="650" fill="var(--ink)">中繼器</text>
+            <text x="110" y="226" text-anchor="middle" font-family="var(--mono)" font-size="9.5" fill="var(--accent)">本地=32</text>
+
+            <rect x="176" y="194" width="90" height="40" rx="7" fill="var(--panel)" stroke="var(--stale)"/>
+            <text x="221" y="211" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--ink)">溫度</text>
+            <text x="221" y="226" text-anchor="middle" font-family="var(--mono)" font-size="9.5" fill="var(--ink-2)">1-1-5</text>
+
+            <rect x="272" y="194" width="90" height="40" rx="7" fill="var(--panel)" stroke="var(--stale)"/>
+            <text x="317" y="211" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--ink)">壓力</text>
+            <text x="317" y="226" text-anchor="middle" font-family="var(--mono)" font-size="9.5" fill="var(--ink-2)">1-1-6</text>
+          </g>
+
+          <!-- bus L3 -->
+          <line x1="110" y1="234" x2="110" y2="256" stroke="var(--wire)" stroke-width="2"/>
+          <line x1="60" y1="256" x2="180" y2="256" stroke="var(--wire)" stroke-width="2"/>
+          <text x="60" y="250" font-family="var(--mono)" font-size="10" fill="var(--ink-3)">第3層 bus</text>
+          <line x1="80" y1="256" x2="80" y2="276" stroke="var(--wire)" stroke-width="2" marker-end="url(#dot)"/>
+          <line x1="160" y1="256" x2="160" y2="276" stroke="var(--wire)" stroke-width="2" marker-end="url(#dot)"/>
+          <g font-family="var(--sans)">
+            <rect x="40" y="278" width="80" height="38" rx="7" fill="var(--panel)" stroke="var(--stale)"/>
+            <text x="80" y="294" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)">傳感器</text>
+            <text x="80" y="308" text-anchor="middle" font-family="var(--mono)" font-size="9.5" fill="var(--accent)">1-32-4</text>
+            <rect x="128" y="278" width="80" height="38" rx="7" fill="var(--panel)" stroke="var(--stale)"/>
+            <text x="168" y="294" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)">傳感器</text>
+            <text x="168" y="308" text-anchor="middle" font-family="var(--mono)" font-size="9.5" fill="var(--ink-2)">1-32-5</text>
+          </g>
+        </svg>
+      </figure>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--accent)"></i>PC / 頂層鏈路</span>
+        <span><i class="sw" style="background:var(--wire)"></i>RS485 匯流排</span>
+        <span><i class="sw" style="background:var(--stale)"></i>末端傳感器（葉）</span>
+        <span>末端 <span class="m">1-32-4</span> = 路徑逐跳前綴拼出</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · ROLES -->
+  <section>
+    <h2><span class="n">02</span> 兩種角色</h2>
+    <p class="sub">中繼器＝上層看是一個 slave、下層看是一個 master，兩個 UART 各接一條匯流排。</p>
+    <div class="grid2">
+      <div class="mini">
+        <h3>末端傳感器 <span class="tag">模組 A</span></h3>
+        <p class="role">Arduino / C++ · 葉節點</p>
+        <p>只做驅動與傳輸：讀指撥、讀感測器、被輪詢才回 <span class="m">位址|json\r</span>。不輪詢、不快取、不拼全路徑。</p>
+      </div>
+      <div class="mini">
+        <h3>中繼器 <span class="tag">模組 B</span></h3>
+        <p class="role">MicroPython / ESP32 · 分支節點</p>
+        <p>雙 UART。對下層主動輪詢並快取，對上層被要求才回 cache，並把孩子資料前綴自己的本地位址向上拼路徑。</p>
+      </div>
+      <div class="mini">
+        <h3>PC 上位機 <span class="tag">模組 D</span></h3>
+        <p class="role">Python · 根 master</p>
+        <p>向第1層中繼器要資料、解析、儀表板顯示，並依使用者設定的條件觸發自動控制（規則引擎）。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · DATA FLOW -->
+  <section>
+    <h2><span class="n">03</span> 資料流：下層一直跑、上層要才給</h2>
+    <p class="sub">每台中繼器不等上層，自己 round-robin 輪詢下層並快取最新一筆完整資料；上層一要立刻回 cache。</p>
+    <div class="card scroll">
+      <figure>
+        <svg viewBox="0 0 760 210" role="img" aria-label="中繼器持續輪詢下層並存入 cache，PC 要求時直接回 cache">
+          <!-- PC -->
+          <rect x="24" y="80" width="120" height="44" rx="8" fill="var(--accent-soft)" stroke="var(--accent)"/>
+          <text x="84" y="107" text-anchor="middle" font-family="var(--sans)" font-size="14" font-weight="700" fill="var(--ink)">PC</text>
+          <!-- request arrow -->
+          <line x1="144" y1="94" x2="250" y2="94" stroke="var(--accent)" stroke-width="2"/>
+          <polygon points="250,94 242,90 242,98" fill="var(--accent)"/>
+          <text x="197" y="86" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--accent)">要資料</text>
+          <line x1="250" y1="112" x2="144" y2="112" stroke="var(--fresh)" stroke-width="2"/>
+          <polygon points="144,112 152,108 152,116" fill="var(--fresh)"/>
+          <text x="197" y="126" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--fresh)">回 cache</text>
+
+          <!-- repeater -->
+          <rect x="252" y="66" width="150" height="72" rx="8" fill="var(--panel-2)" stroke="var(--wire)"/>
+          <text x="327" y="92" text-anchor="middle" font-family="var(--sans)" font-size="13" font-weight="650" fill="var(--ink)">中繼器</text>
+          <text x="327" y="112" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="var(--ink-2)">cache{ }</text>
+          <text x="327" y="127" text-anchor="middle" font-family="var(--mono)" font-size="9" fill="var(--ink-3)">每孩子最新一筆</text>
+
+          <!-- poll loop to children -->
+          <line x1="402" y1="88" x2="520" y2="66" stroke="var(--wire)" stroke-width="2"/><polygon points="520,66 511,66 516,73" fill="var(--wire)"/>
+          <line x1="402" y1="102" x2="520" y2="102" stroke="var(--wire)" stroke-width="2"/><polygon points="520,102 512,98 512,106" fill="var(--wire)"/>
+          <line x1="402" y1="116" x2="520" y2="138" stroke="var(--wire)" stroke-width="2"/><polygon points="520,138 511,138 516,131" fill="var(--wire)"/>
+          <text x="452" y="150" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--wire)">round-robin 輪詢</text>
+
+          <!-- children -->
+          <rect x="524" y="48" width="120" height="34" rx="6" fill="var(--panel)" stroke="var(--fresh)"/>
+          <text x="584" y="69" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="var(--ink)">孩子#4 · fresh</text>
+          <rect x="524" y="86" width="120" height="34" rx="6" fill="var(--panel)" stroke="var(--fresh)"/>
+          <text x="584" y="107" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="var(--ink)">孩子#5 · fresh</text>
+          <rect x="524" y="124" width="120" height="34" rx="6" fill="var(--panel)" stroke="var(--stale)" stroke-dasharray="4 3"/>
+          <text x="584" y="145" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="var(--stale)">孩子#6 · 逾時→stale</text>
+        </svg>
+      </figure>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--fresh)"></i>fresh（收到 \r）</span>
+        <span><i class="sw" style="background:var(--stale)"></i>stale（等 \r 逾時 → 跳過）</span>
+        <span>上層要求優先於當前輪詢</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · PROTOCOL FRAMING -->
+  <section>
+    <h2><span class="n">04</span> 框架：<span class="m" style="font-size:.85em">\n</span> 未完 · <span class="m" style="font-size:.85em">\r</span> 完成</h2>
+    <p class="sub">資料以 byte 串流。接收端一路累積，遇 \n 繼續等，遇 \r 表示整筆收齊。payload 需單行 minified JSON，不得含裸 \n/\r。</p>
+    <div class="card scroll">
+      <figure>
+        <svg viewBox="0 0 760 120" role="img" aria-label="byte 串流以 反斜線 n 分段、反斜線 r 收尾的框架示意">
+          <!-- byte cells -->
+          <g font-family="var(--mono)" font-size="12">
+            <!-- chunk 1 -->
+            <rect x="20" y="34" width="150" height="34" rx="5" fill="var(--panel-2)" stroke="var(--line)"/>
+            <text x="95" y="56" text-anchor="middle" fill="var(--ink-2)">…資料分段…</text>
+            <rect x="172" y="34" width="34" height="34" rx="5" fill="var(--accent-soft)" stroke="var(--accent)"/>
+            <text x="189" y="56" text-anchor="middle" fill="var(--accent)" font-weight="700">\n</text>
+            <!-- chunk 2 -->
+            <rect x="212" y="34" width="150" height="34" rx="5" fill="var(--panel-2)" stroke="var(--line)"/>
+            <text x="287" y="56" text-anchor="middle" fill="var(--ink-2)">…資料分段…</text>
+            <rect x="364" y="34" width="34" height="34" rx="5" fill="var(--accent-soft)" stroke="var(--accent)"/>
+            <text x="381" y="56" text-anchor="middle" fill="var(--accent)" font-weight="700">\n</text>
+            <!-- final chunk -->
+            <rect x="404" y="34" width="230" height="34" rx="5" fill="var(--panel-2)" stroke="var(--line)"/>
+            <text x="519" y="56" text-anchor="middle" fill="var(--ink-2)">1-32-4|{"t":"TMP",...}</text>
+            <rect x="636" y="34" width="34" height="34" rx="5" fill="var(--fresh)" stroke="var(--fresh)"/>
+            <text x="653" y="56" text-anchor="middle" fill="var(--ground)" font-weight="700">\r</text>
+          </g>
+          <text x="189" y="90" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--accent)">還有 → 繼續等</text>
+          <text x="653" y="90" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--fresh)">收齊 → 交付/存 cache</text>
+        </svg>
+      </figure>
+      <figcaption>一筆完整資料 = 完整分層位址 + 單行 JSON，以 \r 收尾。</figcaption>
+    </div>
+  </section>
+
+  <!-- 5 · ADDRESSING + DIP -->
+  <section>
+    <h2><span class="n">05</span> 定址：7 階指撥 + 字串路徑</h2>
+    <p class="sub">6 位址 bit（0–63，一條 bus 最多 64 台）＋ 1 功能 bit。分層位址用字串（非陣列），避免層數/寬度一多就位址不足。</p>
+    <div class="grid2">
+      <div class="card scroll">
+        <figure>
+          <svg viewBox="0 0 340 150" role="img" aria-label="7 階指撥開關：位 2 到 7 為位址，位 1 為功能">
+            <text x="10" y="20" font-family="var(--mono)" font-size="11" fill="var(--ink-3)">DIP ×7</text>
+            <!-- 6 address switches -->
+            <g font-family="var(--mono)" font-size="10">
+              <!-- addr bits ON pattern example 000100 = 4 -->
+              <!-- switch drawing helper: draw 6 addr + 1 func -->
+              <!-- addr -->
+              <g>
+                <rect x="20" y="40" width="30" height="60" rx="4" fill="var(--panel-2)" stroke="var(--line)"/>
+                <rect x="24" y="66" width="22" height="30" rx="3" fill="var(--ink-3)"/>
+                <text x="35" y="118" text-anchor="middle" fill="var(--ink-3)">7</text>
+              </g>
+              <g>
+                <rect x="56" y="40" width="30" height="60" rx="4" fill="var(--panel-2)" stroke="var(--line)"/>
+                <rect x="60" y="66" width="22" height="30" rx="3" fill="var(--ink-3)"/>
+                <text x="71" y="118" text-anchor="middle" fill="var(--ink-3)">6</text>
+              </g>
+              <g>
+                <rect x="92" y="40" width="30" height="60" rx="4" fill="var(--panel-2)" stroke="var(--line)"/>
+                <rect x="96" y="66" width="22" height="30" rx="3" fill="var(--ink-3)"/>
+                <text x="107" y="118" text-anchor="middle" fill="var(--ink-3)">5</text>
+              </g>
+              <g>
+                <rect x="128" y="40" width="30" height="60" rx="4" fill="var(--accent-soft)" stroke="var(--accent)"/>
+                <rect x="132" y="44" width="22" height="30" rx="3" fill="var(--accent)"/>
+                <text x="143" y="118" text-anchor="middle" fill="var(--accent)">4</text>
+              </g>
+              <g>
+                <rect x="164" y="40" width="30" height="60" rx="4" fill="var(--panel-2)" stroke="var(--line)"/>
+                <rect x="168" y="66" width="22" height="30" rx="3" fill="var(--ink-3)"/>
+                <text x="179" y="118" text-anchor="middle" fill="var(--ink-3)">3</text>
+              </g>
+              <g>
+                <rect x="200" y="40" width="30" height="60" rx="4" fill="var(--panel-2)" stroke="var(--line)"/>
+                <rect x="204" y="66" width="22" height="30" rx="3" fill="var(--ink-3)"/>
+                <text x="215" y="118" text-anchor="middle" fill="var(--ink-3)">2</text>
+              </g>
+              <!-- func bit -->
+              <g>
+                <rect x="248" y="40" width="30" height="60" rx="4" fill="var(--panel)" stroke="var(--stale)"/>
+                <rect x="252" y="44" width="22" height="30" rx="3" fill="var(--stale)"/>
+                <text x="263" y="118" text-anchor="middle" fill="var(--stale)">1</text>
+              </g>
+            </g>
+            <text x="125" y="32" text-anchor="middle" font-family="var(--mono)" font-size="9.5" fill="var(--accent)">位址 (6 bit) = 4</text>
+            <text x="263" y="32" text-anchor="middle" font-family="var(--mono)" font-size="9.5" fill="var(--stale)">功能</text>
+          </svg>
+        </figure>
+        <p style="font-size:.86rem; color:var(--ink-2); margin:.6rem 0 0;">功能位 <b>ON＝常規</b>（向下讀取/回報）、<b>OFF＝進階</b>（編輯此設備：寫 JSON/參數）。</p>
+      </div>
+      <div class="card">
+        <p style="font-family:var(--mono); font-size:.78rem; color:var(--ink-3); margin:0 0 .6rem;">字串路徑逐跳前綴</p>
+        <div style="font-family:var(--mono); font-size:1.5rem; letter-spacing:.02em; margin:.2rem 0 .9rem; font-weight:600;">
+          <span style="color:var(--accent)">1</span><span style="color:var(--ink-3)">-</span><span style="color:var(--wire)">32</span><span style="color:var(--ink-3)">-</span><span style="color:var(--stale)">4</span>
+        </div>
+        <table>
+          <tr><td><span class="m" style="color:var(--accent)">1</span></td><td>第1層 · 第1台中繼器</td></tr>
+          <tr><td><span class="m" style="color:var(--wire)">32</span></td><td>第2層 · 底下第32台</td></tr>
+          <tr><td><span class="m" style="color:var(--stale)">4</span></td><td>第3層 · 末端第4台</td></tr>
+        </table>
+        <p style="font-size:.84rem; color:var(--ink-2); margin:.8rem 0 0;">末端只知本地位址；每經一台中繼器就前綴自己的位址，路徑在往上流時拼成。搬移分支自動更新，免全域位址表。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · MODULES -->
+  <section>
+    <h2><span class="n">06</span> 軟體切分 · 分頭開發</h2>
+    <p class="sub">彼此只靠「通訊協定」與「JSON schema」兩份契約對接。先凍結契約（C、E），再平行實作。</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>模組</th><th>內容</th><th>平台 / 語言</th><th>前置</th></tr></thead>
+        <tbody>
+          <tr><td><b>C</b> 協定庫 <span class="m">契約</span></td><td>\n/\r 框架編解碼、位址字串操作、跨語言測試向量</td><td>C++ &amp; Python 兩版</td><td>最先做</td></tr>
+          <tr><td><b>E</b> JSON schema <span class="m">契約</span></td><td>設備描述 schema + 範例 + 驗證</td><td>JSON</td><td>最先做</td></tr>
+          <tr><td><b>A</b> 末端韌體</td><td>讀指撥 + 感測器驅動 + 打包回報</td><td>Arduino / C++</td><td>C</td></tr>
+          <tr><td><b>B</b> 中繼器韌體</td><td>雙 UART + 輪詢 + cache + 前綴 + 逾時</td><td>MicroPython / ESP32</td><td>C、E</td></tr>
+          <tr><td><b>D</b> PC 上位機</td><td>請求排程 + 儀表板 + 規則引擎（自動控制）</td><td>Python</td><td>C、E</td></tr>
+          <tr><td><b>F</b> 傳輸層抽象</td><td>RS485 ↔ Ethernet/WiFi 可插拔（解 PC 瓶頸）</td><td>Python / ESP32</td><td>擴充</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 7 · TEST STAGES -->
+  <section>
+    <h2><span class="n">07</span> 分階段測試</h2>
+    <p class="sub">用手上硬體：ESP32（中繼器）· Arduino UNO / STM32 / Nucleo（末端）· MAX13487（收發器）。先跑兩節點，再長成樹。</p>
+    <div class="stages">
+      <div class="stage"><div class="id">Stage 0</div><div><h4>兩節點點對點</h4><p>ESP32 ↔ UNO 單條 RS485，驗證 \n/\r 串流、指撥讀取、<span class="m">位址|json\r</span> 收送與逾時偵測。</p></div></div>
+      <div class="stage"><div class="id">Stage 1</div><div><h4>一中繼器 + 多末端</h4><p>單 bus multidrop，驗證 round-robin 輪詢、cache dict、拔線 → stale 不卡住整條 bus。</p></div></div>
+      <div class="stage"><div class="id">Stage 2</div><div><h4>兩層樹</h4><p>PC ↔ 第1層 ↔ 第2層 ↔ 末端。驗證逐跳前綴（末端顯示 <span class="m">1-32-4</span>）、上要下給、讀取與 bus 解耦。</p></div></div>
+      <div class="stage"><div class="id">Stage 3</div><div><h4>規則引擎 + Ethernet/WiFi</h4><p>PC 端條件觸發自動控制；若串列塞車，頂層 ESP32 對 PC 改走 WiFi/Ethernet。</p></div></div>
+    </div>
+  </section>
+
+  <!-- 8 · OPEN DECISIONS -->
+  <section>
+    <h2><span class="n">08</span> 待拍板</h2>
+    <div class="callout">
+      <ul>
+        <li><b>位址 0 是否保留為廣播</b> — 保留則可用 1–63（63 台）；要塞滿 64 需另設廣播機制。</li>
+        <li><b>「頂層 5V」的確切意思</b> — 牽動頂層 MCU/收發器選型。ESP32(3.3V) ↔ MAX13487(5V) 的 RO 準位需處理，或 3.3V 節點改用 3.3V 收發器。</li>
+        <li><b>是否一開始就上 CRC</b> — RS485 工業雜訊環境建議加（放 \r 前）。</li>
+        <li><b>自動控制的「輸出設備」型別</b> — 規則引擎的輸出通道要不要現在一起定義。</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    RS485_C · 系統架構總覽 — 詳細文件見專案 <code>docs\</code>（01 架構 · 02 協定 · 03 定址 · 04 模組拆分 · 05 測試 · 06 待確認）。
+    接替並取代舊 <code>R_C_MOD</code>，與 <code>ACL_001</code> 為獨立項目。
+  </footer>
+</div>

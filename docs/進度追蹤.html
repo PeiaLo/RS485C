@@ -1,0 +1,123 @@
+<title>RS485_C · 進度追蹤</title>
+<style>
+  :root {
+    --ground: #f4f6f7; --panel: #ffffff; --panel-2: #eef2f3;
+    --ink: #1b2530; --ink-2: #4b5a68; --ink-3: #7c8b98; --line: #d3dbe0;
+    --accent: #0f9d8f; --accent-soft: #d3ede9; --wire: #3d6ea5;
+    --done: #2c9e5f; --now: #cf8a1e; --wait: #7c8b98;
+    --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+    --sans: "Segoe UI", "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #12161b; --panel: #1a2029; --panel-2: #212a34;
+      --ink: #dbe4ec; --ink-2: #a3b1bf; --ink-3: #6c7c8a; --line: #2c3742;
+      --accent: #23b7a7; --accent-soft: #16332f; --wire: #6ea0d6;
+      --done: #45c07a; --now: #e0a343; --wait: #6c7c8a;
+    }
+  }
+  :root[data-theme="light"] {
+    --ground:#f4f6f7;--panel:#fff;--panel-2:#eef2f3;--ink:#1b2530;--ink-2:#4b5a68;--ink-3:#7c8b98;--line:#d3dbe0;--accent:#0f9d8f;--accent-soft:#d3ede9;--wire:#3d6ea5;--done:#2c9e5f;--now:#cf8a1e;--wait:#7c8b98;
+  }
+  :root[data-theme="dark"] {
+    --ground:#12161b;--panel:#1a2029;--panel-2:#212a34;--ink:#dbe4ec;--ink-2:#a3b1bf;--ink-3:#6c7c8a;--line:#2c3742;--accent:#23b7a7;--accent-soft:#16332f;--wire:#6ea0d6;--done:#45c07a;--now:#e0a343;--wait:#6c7c8a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--ground); color: var(--ink); font-family: var(--sans); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 34rem; margin: 0 auto; padding: 1.3rem 1.1rem 3rem; }
+
+  header { margin-bottom: 1.4rem; }
+  .kicker { font-family: var(--mono); font-size: .68rem; letter-spacing: .2em; text-transform: uppercase; color: var(--accent); margin: 0 0 .4rem; }
+  h1 { font-size: 1.55rem; margin: 0 0 .3rem; font-weight: 680; letter-spacing: -.01em; }
+  .updated { font-family: var(--mono); font-size: .74rem; color: var(--ink-3); }
+
+  .now-card { background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 12px; padding: 1rem 1.1rem; margin-bottom: 1.5rem; }
+  .now-card .lbl { font-family: var(--mono); font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+  .now-card p { margin: .3rem 0 0; font-size: 1.02rem; font-weight: 560; color: var(--ink); }
+  .now-card .hint { font-size: .85rem; font-weight: 400; color: var(--ink-2); margin-top: .35rem; }
+
+  h2 { font-size: .82rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); margin: 1.8rem 0 .7rem; font-weight: 600; }
+
+  .row { display: flex; gap: .7rem; padding: .6rem 0; border-bottom: 1px solid var(--line); align-items: flex-start; }
+  .row:last-child { border-bottom: 0; }
+  .dot { flex: none; width: 1.15rem; height: 1.15rem; border-radius: 50%; margin-top: .12rem; display: grid; place-items: center; font-size: .7rem; font-weight: 700; }
+  .dot.done { background: var(--done); color: #fff; }
+  .dot.now  { background: var(--now); color: #fff; }
+  .dot.wait { background: transparent; border: 1.5px dashed var(--wait); color: var(--wait); }
+  .row .txt { font-size: .95rem; }
+  .row .txt small { display: block; color: var(--ink-2); font-size: .82rem; margin-top: .1rem; }
+  .row.dim .txt { color: var(--ink-3); }
+
+  .decis { display: grid; gap: .5rem; }
+  .chip-row { display: flex; gap: .6rem; align-items: baseline; background: var(--panel); border: 1px solid var(--line); border-radius: 9px; padding: .6rem .8rem; }
+  .chip-row .k { font-family: var(--mono); font-size: .72rem; color: var(--accent); flex: none; min-width: 4.6rem; }
+  .chip-row .v { font-size: .88rem; color: var(--ink); }
+
+  .pending { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: .9rem 1rem; }
+  .pending li { margin: .35rem 0; font-size: .9rem; color: var(--ink-2); }
+  .pending li b { color: var(--ink); }
+
+  .links { display: grid; gap: .55rem; margin-top: 1.6rem; }
+  .links a { display: flex; align-items: center; gap: .6rem; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: .75rem .9rem; text-decoration: none; color: var(--ink); font-size: .92rem; font-weight: 520; }
+  .links a .ico { font-size: 1.1rem; }
+  .links a .path { font-family: var(--mono); font-size: .78rem; color: var(--ink-3); }
+  .links a:active { border-color: var(--accent); }
+
+  footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--line); font-size: .76rem; color: var(--ink-3); }
+  footer code { font-family: var(--mono); }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="kicker">RS485_C · 進度追蹤</p>
+    <h1>多層樹狀傳感器網路</h1>
+    <p class="updated">更新：2026-08-14 · Stage 0</p>
+  </header>
+
+  <div class="now-card">
+    <span class="lbl">現在在這</span>
+    <p>Stage 0 兩節點程式已完成，等你實機燒錄驗證</p>
+    <p class="hint">ESP32(主) + UNO(末端)，先 TTL 直連驗 \n/\r 協定，再換 MAX13487。</p>
+  </div>
+
+  <h2>路線圖</h2>
+  <div>
+    <div class="row"><span class="dot done">✓</span><div class="txt">規格整理成文件 + 架構總覽<small>README、docs 01–06、圖像化總覽</small></div></div>
+    <div class="row"><span class="dot done">✓</span><div class="txt">JSON schema + 範例<small>device.schema.json、溫度/壓力範例</small></div></div>
+    <div class="row"><span class="dot done">✓</span><div class="txt">Stage 0 兩支程式 + 接線文件<small>UNO 末端 · ESP32 主端 · 分壓/共地說明</small></div></div>
+    <div class="row"><span class="dot done">✓</span><div class="txt">協定模擬跑通<small>一問一答、\r 收尾、逾時 stale 都正確</small></div></div>
+    <div class="row"><span class="dot now">▶</span><div class="txt"><b>Stage 0 實機驗證</b><small>燒錄 → 接線(含分壓) → 看 ESP32 監控每秒收一筆</small></div></div>
+    <div class="row dim"><span class="dot wait"></span><div class="txt">Stage 1：MicroPython 中繼器<small>接多台末端 + cache + round-robin + 逐跳前綴</small></div></div>
+    <div class="row dim"><span class="dot wait"></span><div class="txt">Stage 2：兩層樹 + PC 上位機<small>位址 1-32-4、上要下給、儀表板</small></div></div>
+    <div class="row dim"><span class="dot wait"></span><div class="txt">Stage 3：規則引擎 + 輸出設備 + WiFi<small>自動控制、CRC、傳輸層抽象</small></div></div>
+  </div>
+
+  <h2>已鎖定的決策</h2>
+  <div class="decis">
+    <div class="chip-row"><span class="k">廣播</span><span class="v">保留位址 0（緊急停止用），可用 1–63</span></div>
+    <div class="chip-row"><span class="k">CRC</span><span class="v">先做沒有的，之後再加（框架已預留接口）</span></div>
+    <div class="chip-row"><span class="k">輸出設備</span><span class="v">暫緩，先把唯讀做穩</span></div>
+    <div class="chip-row"><span class="k">末端硬體</span><span class="v">AVR 5V + MAX13487 直接接；ESP32 的 RO 要分壓</span></div>
+    <div class="chip-row"><span class="k">WiFi</span><span class="v">只用於頂層對PC / 拉不了線的橋接；中間層走 RS485</span></div>
+  </div>
+
+  <h2>等你回 / 待討論</h2>
+  <div class="pending">
+    <ul>
+      <li><b>Stage 0 實機結果</b> — 燒好接好後貼 ESP32 監控畫面，順不順。</li>
+      <li><b>輸出設備定義</b> — 你要去討論的（型別、通道、斷線安全狀態）。</li>
+      <li><b>WiFi 情境</b> — 目前有沒有跨棟 / 移動設備 / 頻寬爆掉？沒有就先全 RS485。</li>
+    </ul>
+  </div>
+
+  <h2>連結</h2>
+  <div class="links">
+    <a href="https://claude.ai/code/artifact/d49577d8-e396-4591-8aa2-814e8ee40429"><span class="ico">🔌</span><span>系統架構總覽（圖像化）</span></a>
+    <div class="links" style="margin:0"><a style="pointer-events:none"><span class="ico">📁</span><span>專案檔案<br><span class="path">C:\Users\apial\Desktop\RS485_C</span></span></a></div>
+  </div>
+
+  <footer>
+    RS485_C · 接替舊 <code>R_C_MOD</code>，與 <code>ACL_001</code> 獨立。<br>
+    此頁每有進展會重新發布、網址不變，手機重整即最新。
+  </footer>
+</div>

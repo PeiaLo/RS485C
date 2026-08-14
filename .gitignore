@@ -1,0 +1,33 @@
+# ---- OS ----
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# ---- 編輯器 / IDE ----
+.vscode/
+.idea/
+*.swp
+
+# ---- Python (PC 上位機 / 中繼器工具) ----
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+*.egg-info/
+
+# ---- Arduino / 韌體建置產物 ----
+build/
+*.hex
+*.elf
+*.bin
+*.o
+*.d
+
+# ---- MicroPython ----
+*.mpy
+
+# ---- 暫存 ----
+*.log
+*.tmp
+~$*

@@ -1,0 +1,12 @@
+{
+  "type": "TMP",
+  "model": "TMP-Sensor-01",
+  "vendor": "example",
+  "fw": "0.1.0",
+  "role": "sensor",
+  "measurements": [
+    { "key": "v", "unit": "C", "min": -40, "max": 125, "resolution": 0.1 }
+  ],
+  "calibration": { "slope": 1.0, "offset": 0.0 },
+  "poll": { "timeout_ms": 200 }
+}
