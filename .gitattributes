@@ -1,0 +1,12 @@
+# 跨平台(PC Windows ↔ 雲端 Linux)統一換行，避免無謂 diff
+* text=auto eol=lf
+
+# 明確標記文字類型
+*.md    text
+*.html  text
+*.json  text
+*.ino   text
+*.py    text
+*.c     text
+*.h     text
+*.cpp   text
