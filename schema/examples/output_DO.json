@@ -1,0 +1,18 @@
+{
+  "type": "DO",
+  "model": "DO-Relay-02",
+  "vendor": "example",
+  "fw": "0.1.0",
+  "role": "output",
+  "measurements": [
+    { "key": "v", "name": "relay readback", "unit": "", "min": 0, "max": 1, "resolution": 1 }
+  ],
+  "output": {
+    "channels": [
+      { "key": "relay1", "name": "relay 1", "kind": "digital" },
+      { "key": "relay2", "name": "relay 2", "kind": "digital" }
+    ],
+    "safe_state": { "relay1": false, "relay2": false }
+  },
+  "poll": { "timeout_ms": 200 }
+}

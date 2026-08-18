@@ -2,33 +2,47 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://rs485c/device.schema.json",
   "title": "RS485_C 設備描述",
-  "description": "末端傳感器模組各自儲存一份；中繼器儲存所有已知設備的這種描述以辨識下層。此為『設備身分/能力』描述，與逐次上報的量測 payload 不同。",
+  "description": "末端傳感器模組各自儲存一份；中繼器儲存所有已知設備的這種描述以辨識下層。此為『設備身分/能力』描述，與逐次上報的量測 payload 不同（payload 見 schema/README.md）。",
   "type": "object",
   "required": ["type", "model", "measurements"],
+  "additionalProperties": false,
   "properties": {
     "type": {
       "type": "string",
-      "description": "設備型別代碼，對應量測 payload 的 t 欄位，例如 TMP(溫度)、PRS(壓力)、DO(數位輸出)。",
-      "examples": ["TMP", "PRS", "DO"]
+      "description": "設備型別代碼，對應量測 payload 的 t 欄位。例：TMP(溫度)、PRS(壓力)、RH(濕度)、DI(數位輸入)、ENV(多量測環境)、DO(數位輸出)。",
+      "pattern": "^[A-Z0-9]{2,8}$",
+      "examples": ["TMP", "PRS", "RH", "DI", "ENV", "DO"]
     },
     "model": { "type": "string", "description": "型號字串" },
     "vendor": { "type": "string", "description": "廠商" },
     "fw": { "type": "string", "description": "韌體版本" },
+    "id": {
+      "type": "string",
+      "description": "選填的設備實例識別（序號等）；位址由指撥決定，不放這裡。"
+    },
     "role": {
       "type": "string",
       "enum": ["sensor", "output", "relay-node"],
-      "description": "sensor=只讀量測；output=可被規則引擎驅動；relay-node=中繼器",
+      "description": "sensor=只讀量測；output=可被規則引擎驅動（第二版，欄位先佔位）；relay-node=中繼器",
       "default": "sensor"
     },
     "measurements": {
       "type": "array",
-      "description": "此設備提供的量測/通道清單",
+      "description": "此設備提供的量測/通道清單。單值設備通常一項 key='v'；多值設備用多個具名 key，對應 payload 的鍵。",
+      "minItems": 1,
       "items": {
         "type": "object",
         "required": ["key", "unit"],
+        "additionalProperties": false,
         "properties": {
-          "key": { "type": "string", "description": "量測欄位鍵，對應 payload 的 v 或多值鍵", "examples": ["v"] },
-          "unit": { "type": "string", "examples": ["C", "kPa", "%RH"] },
+          "key": {
+            "type": "string",
+            "description": "量測欄位鍵，對應 payload 的值鍵。單值慣用 'v'；多值用具名鍵如 'temp'、'rh'。",
+            "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+            "examples": ["v", "temp", "rh"]
+          },
+          "name": { "type": "string", "description": "人類可讀名稱（顯示用）" },
+          "unit": { "type": "string", "examples": ["C", "kPa", "%RH", ""] },
           "min": { "type": "number", "description": "量程下限" },
           "max": { "type": "number", "description": "量程上限" },
           "resolution": { "type": "number", "description": "解析度" }
@@ -38,6 +52,7 @@
     "calibration": {
       "type": "object",
       "description": "校正參數（線性 slope/offset 或其他）",
+      "additionalProperties": false,
       "properties": {
         "slope": { "type": "number", "default": 1 },
         "offset": { "type": "number", "default": 0 }
@@ -46,8 +61,39 @@
     "poll": {
       "type": "object",
       "description": "輪詢相關提示（供中繼器參考）",
+      "additionalProperties": false,
       "properties": {
-        "timeout_ms": { "type": "integer", "description": "此設備回應逾時上限", "default": 200 }
+        "timeout_ms": { "type": "integer", "description": "此設備回應逾時上限", "default": 200, "minimum": 1 },
+        "retries": { "type": "integer", "description": "逾時後重試次數", "default": 0, "minimum": 0 }
+      }
+    },
+    "output": {
+      "type": "object",
+      "description": "【佔位，第二版才實作】輸出型設備（role=output）用。定義通道與斷線安全狀態，讓規則引擎反向驅動。目前僅保留欄位，韌體/上位機暫不實作。",
+      "additionalProperties": false,
+      "properties": {
+        "channels": {
+          "type": "array",
+          "description": "可驅動的輸出通道清單",
+          "items": {
+            "type": "object",
+            "required": ["key", "kind"],
+            "additionalProperties": false,
+            "properties": {
+              "key": { "type": "string", "description": "通道鍵（寫入指令用）", "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$" },
+              "name": { "type": "string" },
+              "kind": { "type": "string", "enum": ["digital", "analog"], "description": "digital=開關；analog=連續值" },
+              "unit": { "type": "string" },
+              "min": { "type": "number" },
+              "max": { "type": "number" }
+            }
+          }
+        },
+        "safe_state": {
+          "type": "object",
+          "description": "上層斷線 / 逾時後各通道應回到的安全狀態（key → 值）",
+          "additionalProperties": { "type": ["number", "boolean"] }
+        }
       }
     }
   }

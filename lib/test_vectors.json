@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "note": "RS485_C 協定庫跨語言測試向量（唯一真相來源）。protocol.py 直接讀本檔驗證；protocol.cpp 透過 test_protocol.py 產生的 test_vectors.h 驗證。CRC 停用，故不含 CRC 案例。字串中的 \\n=0x0A(CONT)、\\r=0x0D(END)。",
+  "build_payload": [
+    { "addr": "4", "json": "{\"t\":\"TMP\",\"v\":26.7,\"u\":\"C\",\"ok\":1}", "expect": "4|{\"t\":\"TMP\",\"v\":26.7,\"u\":\"C\",\"ok\":1}" },
+    { "addr": "1-32-4", "json": "{\"v\":1}", "expect": "1-32-4|{\"v\":1}" },
+    { "addr": "4", "json": "{}", "expect": "4|{}" }
+  ],
+  "parse_payload": [
+    { "input": "1-32-4|{\"t\":\"TMP\",\"v\":26.7}", "addr": "1-32-4", "json": "{\"t\":\"TMP\",\"v\":26.7}" },
+    { "input": "4|{}", "addr": "4", "json": "{}" },
+    { "input": "7|{\"a\":\"b|c\"}", "addr": "7", "json": "{\"a\":\"b|c\"}" }
+  ],
+  "encode": [
+    { "addr": "4", "json": "{\"v\":1}", "final": true, "expect": "4|{\"v\":1}\r" },
+    { "addr": "32-4", "json": "{\"v\":2}", "final": false, "expect": "32-4|{\"v\":2}\n" },
+    { "addr": "1-32-4", "json": "{\"t\":\"TMP\",\"v\":26.7,\"u\":\"C\",\"ok\":1}", "final": true, "expect": "1-32-4|{\"t\":\"TMP\",\"v\":26.7,\"u\":\"C\",\"ok\":1}\r" }
+  ],
+  "decode": [
+    { "stream": "4|{\"v\":1}\r", "records": [ { "payload": "4|{\"v\":1}", "final": true } ] },
+    { "stream": "1|{\"v\":1}\n2|{\"v\":2}\n3|{\"v\":3}\r", "records": [ { "payload": "1|{\"v\":1}", "final": false }, { "payload": "2|{\"v\":2}", "final": false }, { "payload": "3|{\"v\":3}", "final": true } ] },
+    { "stream": "1-32-4|{\"t\":\"TMP\",\"v\":26.7}\r", "records": [ { "payload": "1-32-4|{\"t\":\"TMP\",\"v\":26.7}", "final": true } ] }
+  ],
+  "addr_prefix": [
+    { "local": 32, "child": "4", "expect": "32-4" },
+    { "local": 1, "child": "32-4", "expect": "1-32-4" },
+    { "local": 5, "child": "", "expect": "5" }
+  ],
+  "addr_split": [
+    { "path": "1-32-4", "expect": [1, 32, 4] },
+    { "path": "4", "expect": [4] },
+    { "path": "1-2-3-4-5", "expect": [1, 2, 3, 4, 5] }
+  ],
+  "addr_valid": [
+    { "path": "1-32-4", "expect": true },
+    { "path": "4", "expect": true },
+    { "path": "63", "expect": true },
+    { "path": "1", "expect": true },
+    { "path": "0", "expect": false },
+    { "path": "64", "expect": false },
+    { "path": "1-0-4", "expect": false },
+    { "path": "1-64-4", "expect": false },
+    { "path": "1--4", "expect": false },
+    { "path": "-4", "expect": false },
+    { "path": "4-", "expect": false },
+    { "path": "", "expect": false },
+    { "path": "1-32-x", "expect": false }
+  ],
+  "addr_local": [
+    { "path": "1-32-4", "expect": 4 },
+    { "path": "7", "expect": 7 },
+    { "path": "1-63", "expect": 63 },
+    { "path": "", "expect": -1 }
+  ],
+  "addr_parent": [
+    { "path": "1-32-4", "expect": "1-32" },
+    { "path": "32-4", "expect": "32" },
+    { "path": "4", "expect": "" }
+  ]
+}

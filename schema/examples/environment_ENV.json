@@ -1,0 +1,13 @@
+{
+  "type": "ENV",
+  "model": "ENV-TH-01",
+  "vendor": "example",
+  "fw": "0.1.0",
+  "role": "sensor",
+  "measurements": [
+    { "key": "temp", "name": "temperature", "unit": "C", "min": -40, "max": 125, "resolution": 0.1 },
+    { "key": "rh", "name": "relative humidity", "unit": "%RH", "min": 0, "max": 100, "resolution": 0.1 }
+  ],
+  "calibration": { "slope": 1.0, "offset": 0.0 },
+  "poll": { "timeout_ms": 250, "retries": 1 }
+}

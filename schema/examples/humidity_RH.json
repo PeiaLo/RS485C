@@ -1,0 +1,12 @@
+{
+  "type": "RH",
+  "model": "RH-Sensor-01",
+  "vendor": "example",
+  "fw": "0.1.0",
+  "role": "sensor",
+  "measurements": [
+    { "key": "v", "name": "relative humidity", "unit": "%RH", "min": 0, "max": 100, "resolution": 0.1 }
+  ],
+  "calibration": { "slope": 1.0, "offset": 0.0 },
+  "poll": { "timeout_ms": 200 }
+}

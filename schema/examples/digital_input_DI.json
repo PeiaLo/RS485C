@@ -1,0 +1,11 @@
+{
+  "type": "DI",
+  "model": "DI-Contact-01",
+  "vendor": "example",
+  "fw": "0.1.0",
+  "role": "sensor",
+  "measurements": [
+    { "key": "v", "name": "contact state", "unit": "", "min": 0, "max": 1, "resolution": 1 }
+  ],
+  "poll": { "timeout_ms": 150 }
+}
