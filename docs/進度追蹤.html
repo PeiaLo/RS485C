@@ -71,24 +71,24 @@
   <header>
     <p class="kicker">RS485_C · 進度追蹤</p>
     <h1>多層樹狀傳感器網路</h1>
-    <p class="updated">更新：2026-08-18 · Stage 0 · 已上 GitHub</p>
+    <p class="updated">更新：2026-08-20 · 契約已定版 · 硬體韌體備妥</p>
   </header>
 
   <div class="now-card">
     <span class="lbl">現在在這</span>
-    <p>Stage 0 兩節點程式已完成，等你實機燒錄驗證</p>
-    <p class="hint">ESP32(主) + UNO(末端)，先 TTL 直連驗 \n/\r 協定，再換 MAX13487。</p>
+    <p>契約已定版、Stage 0 已用模擬驗證；硬體韌體(2×ESP32)備妥，等你燒錄</p>
+    <p class="hint">兩台 ESP32 都 3.3V → TTL 直連【免分壓】。燒下去能通就同時驗證了 C++ 協定庫。</p>
   </div>
 
   <h2>路線圖</h2>
   <div>
     <div class="row"><span class="dot done">✓</span><div class="txt">規格整理成文件 + 架構總覽<small>README、docs 01–06、圖像化總覽</small></div></div>
-    <div class="row"><span class="dot done">✓</span><div class="txt">JSON schema + 範例<small>device.schema.json、溫度/壓力範例</small></div></div>
-    <div class="row"><span class="dot done">✓</span><div class="txt">Stage 0 兩支程式 + 接線文件<small>UNO 末端 · ESP32 主端 · 分壓/共地說明</small></div></div>
-    <div class="row"><span class="dot done">✓</span><div class="txt">協定模擬跑通<small>一問一答、\r 收尾、逾時 stale 都正確</small></div></div>
+    <div class="row"><span class="dot done">✓</span><div class="txt">契約定版：協定庫(C) + schema(E)<small>lib/ per-record emit · 只做框架+位址 · Python 49/49 · schema 6/6</small></div></div>
+    <div class="row"><span class="dot done">✓</span><div class="txt">Stage 0 以模擬驗證<small>sim/stage0.py、simulate.py 走真 lib/protocol.py，含逐跳前綴、逾時 stale</small></div></div>
+    <div class="row"><span class="dot done">✓</span><div class="txt">硬體韌體備妥（皆用 lib）<small>esp32_master · esp32_terminal · uno_terminal + 接線文件</small></div></div>
     <div class="row"><span class="dot done">✓</span><div class="txt">專案上版控 + 推上 GitHub<small>PeiaLo/RS485C · PC ↔ 雲端可同步</small></div></div>
-    <div class="row"><span class="dot now">▶</span><div class="txt"><b>Stage 0 實機驗證</b><small>燒錄 → 接線(含分壓) → 看 ESP32 監控每秒收一筆</small></div></div>
-    <div class="row dim"><span class="dot wait"></span><div class="txt">Stage 1：MicroPython 中繼器<small>接多台末端 + cache + round-robin + 逐跳前綴</small></div></div>
+    <div class="row"><span class="dot now">▶</span><div class="txt"><b>Stage 0 實機（2×ESP32）</b><small>燒錄 → TTL 直連(免分壓) → master 監控每秒收一筆；同時驗 C++ 庫</small></div></div>
+    <div class="row dim"><span class="dot wait"></span><div class="txt">Stage 1：加 UNO 上真 RS485 + 中繼器<small>MAX13487×3 · cache · round-robin（B 之後改 MicroPython）</small></div></div>
     <div class="row dim"><span class="dot wait"></span><div class="txt">Stage 2：兩層樹 + PC 上位機<small>位址 1-32-4、上要下給、儀表板</small></div></div>
     <div class="row dim"><span class="dot wait"></span><div class="txt">Stage 3：規則引擎 + 輸出設備 + WiFi<small>自動控制、CRC、傳輸層抽象</small></div></div>
   </div>
@@ -97,6 +97,7 @@
   <div class="decis">
     <div class="chip-row"><span class="k">廣播</span><span class="v">保留位址 0（緊急停止用），可用 1–63</span></div>
     <div class="chip-row"><span class="k">CRC</span><span class="v">先做沒有的，之後再加（框架已預留接口）</span></div>
+    <div class="chip-row"><span class="k">協定定版</span><span class="v">解碼 per-record emit；lib 只做「框架+位址」，REQ/CFG 留韌體</span></div>
     <div class="chip-row"><span class="k">輸出設備</span><span class="v">暫緩，先把唯讀做穩</span></div>
     <div class="chip-row"><span class="k">末端硬體</span><span class="v">AVR 5V + MAX13487 直接接；ESP32 的 RO 要分壓</span></div>
     <div class="chip-row"><span class="k">WiFi</span><span class="v">只用於頂層對PC / 拉不了線的橋接；中間層走 RS485</span></div>
@@ -105,7 +106,8 @@
   <h2>等你回 / 待討論</h2>
   <div class="pending">
     <ul>
-      <li><b>Stage 0 實機結果</b> — 燒好接好後貼 ESP32 監控畫面，順不順。</li>
+      <li><b>Stage 0 實機結果</b> — 先燒 2×ESP32（免分壓），貼 master 監控畫面。</li>
+      <li><b>MAX13487 數量</b> — Stage 1（加 UNO 上真 RS485）每台一顆、共需 3 顆。</li>
       <li><b>輸出設備定義</b> — 你要去討論的（型別、通道、斷線安全狀態）。</li>
       <li><b>WiFi 情境</b> — 目前有沒有跨棟 / 移動設備 / 頻寬爆掉？沒有就先全 RS485。</li>
     </ul>
