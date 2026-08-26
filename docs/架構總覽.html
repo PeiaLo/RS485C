@@ -416,13 +416,21 @@
 
   <!-- 8 · OPEN DECISIONS -->
   <section>
-    <h2><span class="n">08</span> 待拍板</h2>
+    <h2><span class="n">08</span> 決策狀態</h2>
     <div class="callout">
+      <p style="margin:0 0 .3rem;font-family:var(--mono);font-size:.76rem;letter-spacing:.06em;color:var(--accent);">✅ 已定</p>
       <ul>
-        <li><b>位址 0 是否保留為廣播</b> — 保留則可用 1–63（63 台）；要塞滿 64 需另設廣播機制。</li>
-        <li><b>「頂層 5V」的確切意思</b> — 牽動頂層 MCU/收發器選型。ESP32(3.3V) ↔ MAX13487(5V) 的 RO 準位需處理，或 3.3V 節點改用 3.3V 收發器。</li>
-        <li><b>是否一開始就上 CRC</b> — RS485 工業雜訊環境建議加（放 \r 前）。</li>
-        <li><b>自動控制的「輸出設備」型別</b> — 規則引擎的輸出通道要不要現在一起定義。</li>
+        <li><b>廣播</b> — 保留位址 0（緊急停止用），可用 1–63。</li>
+        <li><b>CRC</b> — 先不做；lib 已預留接口 <span class="m">*&lt;crc16&gt;</span>，要加只動協定庫。</li>
+        <li><b>輸出設備</b> — 暫緩，先把唯讀做穩；自動控制列第二版。</li>
+        <li><b>頂層 5V / 收發器</b> — ESP32(3.3V) 走 WiFi 對 PC 免 5V；末端 AVR+MAX13487，ESP32 的 RO 分壓。</li>
+        <li><b>協定 / schema</b> — 已定版：per-record emit、lib 只做框架+位址；6 型別、Python 49/49、schema 6/6 過。</li>
+      </ul>
+      <p style="margin:.8rem 0 .3rem;font-family:var(--mono);font-size:.76rem;letter-spacing:.06em;color:var(--stale);">⏳ 待你回</p>
+      <ul>
+        <li><b>輸出設備細節</b> — 通道、斷線安全狀態（你要討論的）。</li>
+        <li><b>WiFi 情境</b> — 有沒有跨棟 / 移動設備 / 頻寬爆掉？沒有先全 RS485。</li>
+        <li><b>Stage 0 實機</b> — 2×ESP32 燒錄結果；Stage 1 需 MAX13487 ×3。</li>
       </ul>
     </div>
   </section>
