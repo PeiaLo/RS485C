@@ -30,6 +30,7 @@ PC (頂層, 5V / 未來 Ethernet·WiFi)
 | [docs/04_軟體模組拆分.md](docs/04_軟體模組拆分.md) | 6 個可分頭開發的模組、介面契約、開發順序 |
 | [docs/05_測試架構建議.md](docs/05_測試架構建議.md) | 用手上硬體（STM32/Nucleo/UNO/ESP32/MAX13487）分階段驗證 |
 | [docs/06_設計決策與待確認.md](docs/06_設計決策與待確認.md) | 開放問題、風險、需要你拍板的地方 |
+| [docs/07_採購清單.md](docs/07_採購清單.md) | 非陸製 BOM / 採購清單、手上硬體盤點 |
 | [子專案/](子專案/00_拆分總覽.md) | **分對話開發用**：6 個模組的 kickoff brief，各含「貼到新對話的開場白」 |
 | [schema/](schema/) | 設備 JSON schema 與範例（溫度、壓力） |
 | [firmware/](firmware/) | 末端(Arduino) 與 中繼器(MicroPython) 韌體骨架 |
