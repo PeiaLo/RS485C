@@ -14,7 +14,10 @@
  */
 #include "protocol.h"
 
-#define BUS       Serial1
+// ⚠️ Nucleo 變體預設沒實例化 Serial1(USART1) → 自己在 PA9(TX)/PA10(RX) 上建一個。
+//    HardwareSerial(rx, tx)：第一個參數是 RX。
+HardwareSerial SerialBus(PA10 /*RX1*/, PA9 /*TX1*/);
+#define BUS       SerialBus
 #define DBG       Serial
 #define BUS_BAUD  115200
 #define POLL_TIMEOUT_MS  200
