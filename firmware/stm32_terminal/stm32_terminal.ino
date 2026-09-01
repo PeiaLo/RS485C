@@ -20,9 +20,13 @@
 
 #define USE_DIP    0
 #define FIXED_ADDR 4
-// 指撥腳（USE_DIP=1）：依你的 STM32 板改。用 INPUT_PULLUP，ON 接 GND。
-const int ADDR_PINS[6] = {PA0, PA1, PA4, PB0, PB1, PC0};
-#define FUNC_PIN PC1
+
+#if USE_DIP
+// 指撥腳（依你的板改）。⚠️ F401CC 是 48 腳封裝，沒有 PC0~PC12（只有 PC13~15），
+// 所以這裡用確定存在的 PA/PB 腳。避開 PA9/PA10(bus)、PA11/PA12(USB)、PA13/PA14(SWD)。
+const int ADDR_PINS[6] = {PB12, PB13, PB14, PB15, PA8, PB10};
+#define FUNC_PIN PB1
+#endif
 
 uint8_t myAddr = FIXED_ADDR;
 bool    advancedMode = false;
@@ -30,6 +34,7 @@ char    reqBuf[48];
 int     reqLen = 0;
 float   gTemp = 25.0;
 
+#if USE_DIP
 void readDip() {
   uint8_t a = 0;
   for (int i = 0; i < 6; i++) {
@@ -41,6 +46,7 @@ void readDip() {
   myAddr = a;
   advancedMode = !funcOn;
 }
+#endif
 
 void setup() {
   DBG.begin(115200);
