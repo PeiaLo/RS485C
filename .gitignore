@@ -30,6 +30,7 @@ build/
 # ---- sketch 內的 lib 副本（lib/ 才是單一真相；用 firmware/sync_lib.sh 產生） ----
 firmware/*/protocol.h
 firmware/*/protocol.cpp
+firmware/*/protocol.py
 
 # ---- 暫存 ----
 *.log
