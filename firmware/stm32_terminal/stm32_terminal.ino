@@ -49,7 +49,11 @@ void readDip() {
 #endif
 
 void setup() {
+  pinMode(LED_BUILTIN, OUTPUT);            // 板載 LED(PC13) 當心跳，肉眼確認活著
   DBG.begin(115200);
+  // STM32 USB CDC：等電腦把序列埠打開再印，否則開機訊息會在 USB 列舉前被丟掉（最多等 5 秒）
+  unsigned long _t = millis();
+  while (!DBG && millis() - _t < 5000) { }
   BUS.begin(BUS_BAUD);
 #if USE_DIP
   readDip();
@@ -84,6 +88,11 @@ bool readRequest() {
 }
 
 void loop() {
+  // 心跳：LED 每 250ms 翻一次，肉眼即可確認板子在跑（與序列埠無關）
+  static bool led = false;
+  static unsigned long led_t = 0;
+  if (millis() - led_t > 250) { led_t = millis(); led = !led; digitalWrite(LED_BUILTIN, led); }
+
   if (!readRequest()) return;
   if (strncmp(reqBuf, "REQ|", 4) != 0) return;
   const char* arg = reqBuf + 4;
