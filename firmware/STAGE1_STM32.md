@@ -11,6 +11,13 @@
 - **中繼器**：燒 MicroPython 韌體到 Nucleo-F401RE（micropython.org/download → STM32 → NUCLEO_F401RE），用 Thonny/rshell/mpremote 把 `main.py` + `lib/protocol.py` 丟上板。
 - **末端**：Arduino IDE 裝 **STM32 core（STM32duino）**，選對板子；先跑 `sh firmware/sync_lib.sh` 把 `protocol.h/.cpp` 複製進 sketch 資料夾。
 
+## STM32 黑膠丸（DevEBox mini_F4x1）燒錄踩雷
+- **沒有 BOOT0 按鈕！** 板上 `K0` 是使用者鍵，不是 BOOT0。**BOOT0 = micro-USB 旁那排的 `BT0` 腳**。
+- **進 DFU**：把 `BT0` 短接到旁邊的 `3V3` → 按 `RST`（或重插 USB）→ 電腦出現「STM32 BOOTLOADER」（帶黃驚嘆號就用 **Zadig** 裝 WinUSB）→ Arduino 上傳(DFU) → **拿掉短接、按 RST** 跑程式。
+- **序列埠不會自動出現**：黑膠丸沒有 USB-UART 晶片。要 Tools → **USB support = CDC (generic 'Serial' supersede U(S)ART)**，燒進去、跑起來後才會列舉成 COM。板號選 **BlackPill F401CC**。
+- **F401CC 是 48 腳**：沒有 PC0~PC12（只有 PC13~15），GPIO 用 PA/PB。
+- **ST-Link 備援**：同一排 `BT0 3V3 GND DIO CLK` 的 `DIO=SWDIO、CLK=SWCLK` → Nucleo 的 ST-Link 接這裡（拔 Nucleo CN2 跳線），Upload method 改「STM32CubeProgrammer (SWD)」。
+
 ## 接線（半雙工，每台一顆 MAX13487）
 ```
   [Nucleo-F401RE 中繼器]                    [F103/F401 末端 addr 4]
