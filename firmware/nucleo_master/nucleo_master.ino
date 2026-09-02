@@ -47,7 +47,13 @@ bool pollOne(uint8_t addr, char* addrOut, int addrSize, char* jsonOut, int jsonS
       rs485c::FrameDecoder::Result r = dec.push(b);
       if (r == rs485c::FrameDecoder::FRAME_RECORD) {
         long crc;
-        return rs485c::parse_payload(dec.payload(), addrOut, addrSize, jsonOut, jsonSize, &crc);
+        // RS485 半雙工會收到自己送的 REQ 回音、以及線上雜訊 → 只收「位址合法」的記錄，
+        // 其餘跳過繼續讀（回音 "REQ|4" 的位址是 "REQ"，addr_valid=false 會被濾掉）。
+        if (rs485c::parse_payload(dec.payload(), addrOut, addrSize, jsonOut, jsonSize, &crc)
+            && rs485c::addr_valid(addrOut)) {
+          return true;
+        }
+        // 無效 → 不 return，繼續讀下一筆（FrameDecoder 已自動重置）
       }
       start = millis();                             // 有在收就續命
     }
