@@ -47,9 +47,13 @@ n = 0
 try:
     while True:
         n += 1
-        ser.write(("REQ|%s\r" % addr).encode())
-        time.sleep(0.3)
-        data = ser.read(256)
+        try:
+            ser.write(("REQ|%s\r" % addr).encode())
+            time.sleep(0.3)
+            data = ser.read(256)
+        except serial.SerialException as e:
+            print("\n串口斷線/錯誤：%s → 自動結束（USB 被拔就會這樣，正常）" % e)
+            break
         if data:
             print("[%d] RX: %s   hex: %s" % (n, repr(data), data.hex(" ")))
         else:
