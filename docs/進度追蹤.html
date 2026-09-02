@@ -71,26 +71,27 @@
   <header>
     <p class="kicker">RS485_C · 進度追蹤</p>
     <h1>多層樹狀傳感器網路</h1>
-    <p class="updated">更新：2026-08-20 · 契約已定版 · 硬體韌體備妥</p>
+    <p class="updated">更新：2026-09-02 · 真 RS485 跑通 · 換 STM32</p>
   </header>
 
   <div class="now-card">
     <span class="lbl">現在在這</span>
-    <p>契約已定版、Stage 0 已用模擬驗證；硬體韌體(2×ESP32)備妥，等你燒錄</p>
-    <p class="hint">兩台 ESP32 都 3.3V → TTL 直連【免分壓】。燒下去能通就同時驗證了 C++ 協定庫。</p>
+    <p>🎉 真 RS485 已跑通！PC(Python)→USB-RS485→MAX13487→STM32 末端，乾淨收到 4|{...}。正在加第 2 台末端（multidrop）</p>
+    <p class="hint">全鏈路(PC→RS485→收發器→STM32→C++庫→回覆)驗證完成。MAX13487 + 120Ω 終端 + 560Ω 偏壓，穩定。</p>
   </div>
 
   <h2>路線圖</h2>
   <div>
-    <div class="row"><span class="dot done">✓</span><div class="txt">規格整理成文件 + 架構總覽<small>README、docs 01–06、圖像化總覽</small></div></div>
-    <div class="row"><span class="dot done">✓</span><div class="txt">契約定版：協定庫(C) + schema(E)<small>lib/ per-record emit · 只做框架+位址 · Python 49/49 · schema 6/6</small></div></div>
-    <div class="row"><span class="dot done">✓</span><div class="txt">Stage 0 以模擬驗證<small>sim/stage0.py、simulate.py 走真 lib/protocol.py，含逐跳前綴、逾時 stale</small></div></div>
-    <div class="row"><span class="dot done">✓</span><div class="txt">硬體韌體備妥（皆用 lib）<small>esp32_master · esp32_terminal · uno_terminal + 接線文件</small></div></div>
-    <div class="row"><span class="dot done">✓</span><div class="txt">專案上版控 + 推上 GitHub<small>PeiaLo/RS485C · PC ↔ 雲端可同步</small></div></div>
-    <div class="row"><span class="dot now">▶</span><div class="txt"><b>Stage 0 實機（2×ESP32）</b><small>燒錄 → TTL 直連(免分壓) → master 監控每秒收一筆；同時驗 C++ 庫</small></div></div>
-    <div class="row dim"><span class="dot wait"></span><div class="txt">Stage 1：加 UNO 上真 RS485 + 中繼器<small>MAX13487×3 · cache · round-robin（B 之後改 MicroPython）</small></div></div>
-    <div class="row dim"><span class="dot wait"></span><div class="txt">Stage 2：兩層樹 + PC 上位機<small>位址 1-32-4、上要下給、儀表板</small></div></div>
-    <div class="row dim"><span class="dot wait"></span><div class="txt">Stage 3：規則引擎 + 輸出設備 + WiFi<small>自動控制、CRC、傳輸層抽象</small></div></div>
+    <div class="row"><span class="dot done">✓</span><div class="txt">規格 + 架構總覽 + 契約定版(C+E)<small>docs 01–07 · lib per-record emit · Python 49/49 · schema 6/6</small></div></div>
+    <div class="row"><span class="dot done">✓</span><div class="txt">Stage 0 以模擬驗證<small>sim/ 走真 lib/protocol.py，逐跳前綴、逾時 stale</small></div></div>
+    <div class="row"><span class="dot done">✓</span><div class="txt">協定 + C++ 庫真硬體驗證<small>TTL：Nucleo master ↔ DevEBox 末端，乾淨 4|{...}</small></div></div>
+    <div class="row"><span class="dot done">✓</span><div class="txt">去陸製：主控改 STM32<small>ESP32(Espressif)退場；中繼器 MicroPython、末端 C++</small></div></div>
+    <div class="row"><span class="dot done">✓</span><div class="txt"><b>真 RS485 跑通</b><small>PC(Python probe)→USB-RS485→MAX13487→STM32；終端+偏壓穩定。附 MAX 自檢工具</small></div></div>
+    <div class="row"><span class="dot done">✓</span><div class="txt">上 GitHub<small>PeiaLo/RS485C</small></div></div>
+    <div class="row"><span class="dot now">▶</span><div class="txt"><b>加第 2 台末端（multidrop）</b><small>addr 5 · 另一顆好 MAX + Nucleo/F103 · 輪詢多台</small></div></div>
+    <div class="row dim"><span class="dot wait"></span><div class="txt">MicroPython 中繼器 + 樹<small>cache + round-robin + 逐跳前綴 1-32-4</small></div></div>
+    <div class="row dim"><span class="dot wait"></span><div class="txt">PC 上位機儀表板 + 規則引擎<small>rs485_probe.py 是雛形</small></div></div>
+    <div class="row dim"><span class="dot wait"></span><div class="txt">輸出設備 + CRC + 傳輸層<small>控制/自動控制</small></div></div>
   </div>
 
   <h2>已鎖定的決策</h2>
@@ -99,17 +100,18 @@
     <div class="chip-row"><span class="k">CRC</span><span class="v">先做沒有的，之後再加（框架已預留接口）</span></div>
     <div class="chip-row"><span class="k">協定定版</span><span class="v">解碼 per-record emit；lib 只做「框架+位址」，REQ/CFG 留韌體</span></div>
     <div class="chip-row"><span class="k">輸出設備</span><span class="v">暫緩，先把唯讀做穩</span></div>
-    <div class="chip-row"><span class="k">末端硬體</span><span class="v">AVR 5V + MAX13487 直接接；ESP32 的 RO 要分壓</span></div>
-    <div class="chip-row"><span class="k">WiFi</span><span class="v">只用於頂層對PC / 拉不了線的橋接；中間層走 RS485</span></div>
+    <div class="chip-row"><span class="k">主控 MCU</span><span class="v">去陸製 → STM32（末端 C++、中繼器 MicroPython）；ESP32 退場</span></div>
+    <div class="chip-row"><span class="k">收發器</span><span class="v">MAX13487 + 120Ω 終端 + 560Ω 偏壓；A/B 命名各廠相反，不通就對調</span></div>
+    <div class="chip-row"><span class="k">WiFi</span><span class="v">暫緩(手上無模組)；若無線傾向 LoRa(STM32WL)；骨幹走有線 Ethernet(W5500)</span></div>
   </div>
 
   <h2>等你回 / 待討論</h2>
   <div class="pending">
     <ul>
-      <li><b>Stage 0 實機結果</b> — 先燒 2×ESP32（免分壓），貼 master 監控畫面。</li>
-      <li><b>MAX13487 數量</b> — Stage 1（加 UNO 上真 RS485）每台一顆、共需 3 顆。</li>
-      <li><b>輸出設備定義</b> — 你要去討論的（型別、通道、斷線安全狀態）。</li>
-      <li><b>WiFi 情境</b> — 目前有沒有跨棟 / 移動設備 / 頻寬爆掉？沒有就先全 RS485。</li>
+      <li><b>今晚：加第 2 台末端</b> — addr 5，另一顆好 MAX（先用 stm32_maxtest 驗）+ Nucleo/F103。</li>
+      <li><b>驗另外 2 顆 MAX</b> — 用 stm32_maxtest 標記好壞。</li>
+      <li><b>控制協定 + schema 定版</b> — SET 下行 + role:controller（等唯讀做穩再上）。</li>
+      <li><b>輸出設備細節</b> — 通道、斷線安全狀態（你要討論的）。</li>
     </ul>
   </div>
 
