@@ -33,6 +33,7 @@ bool    advancedMode = false;
 char    reqBuf[48];
 int     reqLen = 0;
 float   gTemp = 25.0;
+unsigned long rxCount = 0;   // 診斷：從 bus 收到的 byte 總數
 
 #if USE_DIP
 void readDip() {
@@ -78,6 +79,7 @@ bool readRequest() {
   while (millis() - start < REQ_TIMEOUT_MS) {      // 溢位安全
     while (BUS.available()) {
       char c = BUS.read();
+      rxCount++;                                     // 診斷：數 bus 收到的 byte
       if (c == '\r') { reqBuf[reqLen] = '\0'; reqLen = 0; return true; }
       if (c == '\n') { continue; }
       if (reqLen < (int)sizeof(reqBuf) - 1) reqBuf[reqLen++] = c;
@@ -90,10 +92,17 @@ bool readRequest() {
 void loop() {
   // 心跳：LED 每 250ms 翻一次，肉眼即可確認板子在跑（與序列埠無關）
   static bool led = false;
-  static unsigned long led_t = 0;
+  static unsigned long led_t = 0, beat_t = 0;
   if (millis() - led_t > 250) { led_t = millis(); led = !led; digitalWrite(LED_BUILTIN, led); }
+  // COM9 診斷：每秒印一次心跳 + 顯示從 bus 收到幾個 byte（rxBytes 有沒有在漲＝有沒有收到東西）
+  if (millis() - beat_t > 1000) {
+    beat_t = millis();
+    DBG.print("[terminal] alive addr="); DBG.print(myAddr);
+    DBG.print(" rxBytes="); DBG.println(rxCount);
+  }
 
   if (!readRequest()) return;
+  DBG.print("[terminal] rx: "); DBG.println(reqBuf);   // 診斷：收到一整行(含亂碼)就印出來
   if (strncmp(reqBuf, "REQ|", 4) != 0) return;
   const char* arg = reqBuf + 4;
   if (!(strcmp(arg, "ALL") == 0 || atoi(arg) == myAddr)) return;
