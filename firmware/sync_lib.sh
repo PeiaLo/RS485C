@@ -6,7 +6,7 @@
 #   用法： sh firmware/sync_lib.sh
 set -e
 cd "$(dirname "$0")/.."
-for d in firmware/esp32_terminal firmware/esp32_master firmware/uno_terminal firmware/stm32_terminal firmware/nucleo_master nucleo_terminal; do
+for d in firmware/esp32_terminal firmware/esp32_master firmware/uno_terminal firmware/stm32_terminal firmware/nucleo_master firmware/nucleo_terminal; do
   cp lib/protocol.h lib/protocol.cpp "$d/"
   echo "synced C++ -> $d"
 done
