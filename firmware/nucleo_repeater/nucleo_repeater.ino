@@ -56,6 +56,7 @@ void pollChild(int i) {
   rs485c::FrameDecoder dec(decBuf, sizeof(decBuf));
   unsigned long start = millis();
   while (millis() - start < POLL_TIMEOUT_MS) {
+    serveUpstream();   // 快取解耦：等下層回覆的同時，持續用 cache 回應 PC（不被 200ms 卡住）
     while (DOWN.available()) {
       uint8_t b = DOWN.read();
       if (dec.push(b) == rs485c::FrameDecoder::FRAME_RECORD) {
