@@ -6,7 +6,9 @@
  *
  * 接線（只接這一顆 MAX）：
  *   Nucleo PA9(D8)→DI(4)、PA10(D2)←RO(1)、VCC(8)=5V、GND(5)、/RE(2)=GND、/SHDN(3)=5V
- *   A(6)/B(7) 建議跨一顆 120Ω（沒有也可能會動）。
+ *   A(6)/B(7) **必接**一顆 120Ω！它負載驅動器——沒供電/幽靈供電的晶片推不動 120Ω
+ *   就會正確地 fail(錯/無)；不接 120Ω 的話，沒供電的晶片會靠 DI 的 ESD 二極體
+ *   幽靈供電、漏訊號回 RO → 假 OK。所以 120Ω 是用來揪出「沒電卻假 OK」的。
  * 板子：Nucleo F401RE；USB support=None；Upload=SWD。開 VCP COM 看結果。
  */
 HardwareSerial SerialBus(PA10 /*RX1*/, PA9 /*TX1*/);

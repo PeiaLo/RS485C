@@ -12,7 +12,7 @@
  *     DevEBox PA10(RX1) ← MAX pin1 RO
  *     MAX pin8 VCC → 5V      pin5 GND → GND
  *     MAX pin2 /RE → GND     pin3 /SHDN → 5V
- *     MAX pin6 A ─┐ 建議跨一顆 120Ω（沒有也可能會動）
+ *     MAX pin6 A ─┐ **必接**一顆 120Ω！負載驅動器；沒供電的晶片會靠 DI 的 ESD 二極體幽靈供電
  *     MAX pin7 B ─┘
  *
  * 板子設定：BlackPill F401CC、USB support=CDC。燒好開 COM9(115200) 看結果。
