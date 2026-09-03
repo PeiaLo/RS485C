@@ -4,8 +4,9 @@
  * 第 1 層中繼器（本地位址 1）。對下層是 master（輪詢+cache+前綴），
  * 對上層(PC) 直接用板載 VCP（免收發器）。
  *
- *   下層 bus: USART1 (PA9 TX1 / PA10 RX1) + MAX13487 → 末端
- *   上層(PC): Serial (板載 ST-Link VCP, COM8) → 免 MAX
+ *   下層 bus: USART1 (PA9 TX1 / PA10 RX1) + MAX_2 → 末端
+ *   上層 bus: USART6 (PC6 TX6 / PC7 RX6) + MAX_1 → USB-485/PC
+ *   除錯:     Serial (板載 ST-Link VCP) → 只印開機/診斷
  *
  * 快取：hold-last-value + age（逾時保留舊值、回報時附 age_ms）。
  * 前綴：末端報 "4" → 中繼器(本地1) 前綴成 "1-4"。
@@ -13,14 +14,17 @@
  * 板子：Nucleo F401RE；USB support=None；Upload=SWD。
  * ⚠️ 編譯前 sync_lib 複製 protocol.h/.cpp 進本資料夾。
  *
- * PC 測試：python rs485_probe.py COM8 4     → 應收到 1-4|{...,"age":N}
- *          python rs485_probe.py COM8 ALL   → 回全部孩子
+ * PC 測試（接 USB-485 的 COM，不是 Nucleo VCP）：
+ *          python rs485_probe.py COMxx 4    → 應收到 1-4|{...,"age":N}
+ *          python rs485_probe.py COMxx ALL  → 回全部孩子
  */
 #include "protocol.h"
 
-HardwareSerial SerialDown(PA10 /*RX1*/, PA9 /*TX1*/);   // 下層 bus
+HardwareSerial SerialDown(PA10 /*RX1*/, PA9 /*TX1*/);   // 下層 bus：USART1 + MAX_2
+HardwareSerial SerialUp(PC7 /*RX6*/, PC6 /*TX6*/);      // 上層 bus：USART6 + MAX_1
 #define DOWN SerialDown
-#define UP   Serial                                     // 上層 = VCP → PC
+#define UP   SerialUp                                    // 上層走 RS485(MAX_1)，非 VCP
+#define DBG  Serial                                      // VCP：只做除錯/開機訊息
 #define BAUD 115200
 #define POLL_TIMEOUT_MS 200
 #define MY_ADDR 1                                        // 本中繼器在上層的本地位址
@@ -33,12 +37,13 @@ Slot cache[N];
 char decBuf[128];
 
 void setup() {
-  UP.begin(115200);
-  DOWN.begin(BAUD);
+  DBG.begin(115200);
+  UP.begin(BAUD);       // 上層 RS485
+  DOWN.begin(BAUD);     // 下層 RS485
   pinMode(LED_BUILTIN, OUTPUT);
   for (int i = 0; i < N; i++) { cache[i].valid = false; cache[i].fresh = false; }
   delay(300);
-  UP.print("[repeater] up, addr="); UP.println(MY_ADDR);
+  DBG.print("[repeater] up, addr="); DBG.println(MY_ADDR);   // 開機訊息走 VCP
 }
 
 // 輪詢一個孩子：REQ → 收 \r → 前綴自己位址 → 存 cache。逾時保留舊值(hold-last)。
