@@ -32,9 +32,9 @@ HardwareSerial SerialUp(PC7 /*RX6*/, PC6 /*TX6*/);      // 上層 bus：USART6 +
 const uint8_t children[] = {4};                          // 下層末端的本地位址（可加 ,5 等）
 const int N = sizeof(children) / sizeof(children[0]);
 
-struct Slot { char path[24]; char json[72]; unsigned long ts; bool fresh; bool valid; };
+struct Slot { char path[24]; char json[96]; unsigned long ts; bool fresh; bool valid; };
 Slot cache[N];
-char decBuf[128];
+char decBuf[160];
 unsigned long upRx = 0;   // 診斷：上層(USART6)收到的 byte 數
 
 void setup() {
@@ -60,7 +60,7 @@ void pollChild(int i) {
     while (DOWN.available()) {
       uint8_t b = DOWN.read();
       if (dec.push(b) == rs485c::FrameDecoder::FRAME_RECORD) {
-        char caddr[16], cjson[72]; long crc;
+        char caddr[16], cjson[96]; long crc;
         // 只收位址合法的（濾掉 RS485 半雙工回音/雜訊）
         if (rs485c::parse_payload(dec.payload(), caddr, sizeof(caddr), cjson, sizeof(cjson), &crc)
             && rs485c::addr_valid(caddr)) {

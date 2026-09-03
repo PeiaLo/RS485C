@@ -15,25 +15,46 @@
  *   A(6)/B(7) 併到同一條 bus（跟第 1 台 A-A、B-B）；bus 兩端 120Ω、一處 560Ω 偏壓。
  */
 #include "protocol.h"
+#include <IWatchdog.h>        // 卡死自動重開 → 下次開機 rst=iwdg
 
 HardwareSerial SerialBus(PA10 /*RX1*/, PA9 /*TX1*/);
 #define BUS   SerialBus
 #define DBG   Serial
 #define BUS_BAUD 115200
 #define REQ_TIMEOUT_MS 300
+#define WDG_TIMEOUT_US 4000000
 #define MY_ADDR 5              // 第 2 台 = 位址 5
 
 char  reqBuf[48];
 int   reqLen = 0;
 float gTemp = 20.0;            // 起始溫度跟第 1 台(25)不同，方便一眼分辨
+char  gRst[6] = "?";          // 上次重置原因
+
+// 讀 RCC_CSR 判斷上次為何重置：por=上電 bor=欠壓(斷電) iwdg=看門狗 sft=軟體 pin=按reset。
+void detectResetCause() {
+  uint32_t csr = RCC->CSR;
+  if      (csr & RCC_CSR_IWDGRSTF) strcpy(gRst, "iwdg");
+  else if (csr & RCC_CSR_WWDGRSTF) strcpy(gRst, "wwdg");
+#ifdef RCC_CSR_BORRSTF
+  else if (csr & RCC_CSR_BORRSTF)  strcpy(gRst, "bor");
+#endif
+  else if (csr & RCC_CSR_PORRSTF)  strcpy(gRst, "por");
+  else if (csr & RCC_CSR_SFTRSTF)  strcpy(gRst, "sft");
+  else if (csr & RCC_CSR_PINRSTF)  strcpy(gRst, "pin");
+  else                             strcpy(gRst, "?");
+  RCC->CSR |= RCC_CSR_RMVF;   // 清旗標
+}
 
 void setup() {
+  detectResetCause();          // 最先做，趁旗標還在（IWDG begin 前）
   pinMode(LED_BUILTIN, OUTPUT);
   DBG.begin(115200);
   BUS.begin(BUS_BAUD);
   delay(200);
   DBG.print("[terminal] up, addr=");
-  DBG.println(MY_ADDR);
+  DBG.print(MY_ADDR);
+  DBG.print(", rst="); DBG.println(gRst);
+  IWatchdog.begin(WDG_TIMEOUT_US);
 }
 
 float readTempC() {
@@ -57,6 +78,7 @@ bool readRequest() {
 }
 
 void loop() {
+  IWatchdog.reload();   // 餵狗
   static bool led = false;
   static unsigned long lt = 0;
   if (millis() - lt > 250) { lt = millis(); led = !led; digitalWrite(LED_BUILTIN, led); }
@@ -68,14 +90,20 @@ void loop() {
 
   char vbuf[10];
   dtostrf(readTempC(), 0, 1, vbuf);
-  char json[48];
+  char ubuf[12];
+  snprintf(ubuf, sizeof(ubuf), "%lu", millis() / 1000UL);   // up = uptime 秒
+  char json[96];
   strcpy(json, "{\"t\":\"TMP\",\"v\":");
   strcat(json, vbuf);
-  strcat(json, ",\"u\":\"C\",\"ok\":1}");
+  strcat(json, ",\"u\":\"C\",\"ok\":1,\"up\":");
+  strcat(json, ubuf);
+  strcat(json, ",\"rst\":\"");
+  strcat(json, gRst);
+  strcat(json, "\"}");
   char addr[6];
   snprintf(addr, sizeof(addr), "%d", MY_ADDR);
 
-  char frame[72];
+  char frame[128];
   int n = rs485c::encode(addr, json, true, frame, sizeof(frame));
   if (n < 0) { DBG.println("[terminal] encode overflow"); return; }
 

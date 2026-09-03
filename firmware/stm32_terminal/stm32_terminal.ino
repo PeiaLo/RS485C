@@ -12,11 +12,13 @@
  * ⚠️ MAX13487 RO 約 5V：STM32 的 RX 腳若是 5V 容忍(FT) 可直接接，否則分壓。
  */
 #include "protocol.h"
+#include <IWatchdog.h>            // STM32 獨立看門狗：卡死自動重開 → 下次開機 rst=iwdg
 
 #define BUS       Serial1
 #define DBG       Serial
 #define BUS_BAUD  115200
 #define REQ_TIMEOUT_MS 300
+#define WDG_TIMEOUT_US 4000000    // 4 秒沒 reload 就重置
 
 #define USE_DIP    0
 #define FIXED_ADDR 4
@@ -34,6 +36,23 @@ char    reqBuf[48];
 int     reqLen = 0;
 float   gTemp = 25.0;
 unsigned long rxCount = 0;   // 診斷：從 bus 收到的 byte 總數
+char    gRst[6] = "?";       // 上次重置原因，開機判定一次（健康狀態機用）
+
+// 讀 RCC_CSR 判斷「上次為何重置」→ 讓中繼器分辨 斷電/當機自救/正常重開。
+// por=上電 bor=欠壓(斷電) iwdg=看門狗(當機自救) sft=軟體 pin=按reset。判完清旗標。
+void detectResetCause() {
+  uint32_t csr = RCC->CSR;
+  if      (csr & RCC_CSR_IWDGRSTF) strcpy(gRst, "iwdg");
+  else if (csr & RCC_CSR_WWDGRSTF) strcpy(gRst, "wwdg");
+#ifdef RCC_CSR_BORRSTF
+  else if (csr & RCC_CSR_BORRSTF)  strcpy(gRst, "bor");
+#endif
+  else if (csr & RCC_CSR_PORRSTF)  strcpy(gRst, "por");
+  else if (csr & RCC_CSR_SFTRSTF)  strcpy(gRst, "sft");
+  else if (csr & RCC_CSR_PINRSTF)  strcpy(gRst, "pin");
+  else                             strcpy(gRst, "?");
+  RCC->CSR |= RCC_CSR_RMVF;   // 清除重置旗標，下次才準
+}
 
 #if USE_DIP
 void readDip() {
@@ -50,6 +69,7 @@ void readDip() {
 #endif
 
 void setup() {
+  detectResetCause();                      // ⚠️ 最先做：趁旗標還在（IWDG begin 前）
   pinMode(LED_BUILTIN, OUTPUT);            // 板載 LED(PC13) 當心跳，肉眼確認活著
   DBG.begin(115200);
   // STM32 USB CDC：等電腦把序列埠打開再印，否則開機訊息會在 USB 列舉前被丟掉（最多等 5 秒）
@@ -65,7 +85,9 @@ void setup() {
   DBG.print("[terminal] up, addr=");
   DBG.print(myAddr);
   DBG.print(", mode=");
-  DBG.println(advancedMode ? "ADVANCED" : "NORMAL");
+  DBG.print(advancedMode ? "ADVANCED" : "NORMAL");
+  DBG.print(", rst="); DBG.println(gRst);
+  IWatchdog.begin(WDG_TIMEOUT_US);         // ⚠️ CDC 等待(可達5s)之後才開，否則開機途中被咬
 }
 
 float readTempC() {
@@ -90,6 +112,7 @@ bool readRequest() {
 }
 
 void loop() {
+  IWatchdog.reload();   // 餵狗：只要 loop 有在跑就重置計時；卡死超過 4s → 自動重開
   // 心跳：LED 每 250ms 翻一次，肉眼即可確認板子在跑（與序列埠無關）
   static bool led = false;
   static unsigned long led_t = 0, beat_t = 0;
@@ -109,14 +132,21 @@ void loop() {
 
   char vbuf[10];
   dtostrf(readTempC(), 0, 1, vbuf);                // STM32 newlib：浮點用 dtostrf 最保險
-  char json[48];
+  char ubuf[12];
+  snprintf(ubuf, sizeof(ubuf), "%lu", millis() / 1000UL);   // up = uptime 秒（歸零＝剛重開/換板）
+  // 健康狀態機三欄位：ok=自我健檢、up=uptime、rst=重置原因
+  char json[96];
   strcpy(json, "{\"t\":\"TMP\",\"v\":");
   strcat(json, vbuf);
-  strcat(json, ",\"u\":\"C\",\"ok\":1}");
+  strcat(json, ",\"u\":\"C\",\"ok\":1,\"up\":");
+  strcat(json, ubuf);
+  strcat(json, ",\"rst\":\"");
+  strcat(json, gRst);
+  strcat(json, "\"}");
   char addr[6];
   snprintf(addr, sizeof(addr), "%d", myAddr);      // %d 整數 OK（只有 %f 才需特別旗標）
 
-  char frame[72];
+  char frame[128];
   int n = rs485c::encode(addr, json, true /*final→\r*/, frame, sizeof(frame));
   if (n < 0) { DBG.println("[terminal] encode overflow"); return; }
 
