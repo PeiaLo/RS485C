@@ -71,13 +71,13 @@
   <header>
     <p class="kicker">RS485_C · 進度追蹤</p>
     <h1>多層樹狀傳感器網路</h1>
-    <p class="updated">更新：2026-09-02 · 真 RS485 跑通 · 換 STM32</p>
+    <p class="updated">更新：2026-09-03 · 樹狀三層端到端跑通</p>
   </header>
 
   <div class="now-card">
     <span class="lbl">現在在這</span>
-    <p>🎉 真 RS485 已跑通！PC(Python)→USB-RS485→MAX13487→STM32 末端，乾淨收到 4|{...}。正在加第 2 台末端（multidrop）</p>
-    <p class="hint">全鏈路(PC→RS485→收發器→STM32→C++庫→回覆)驗證完成。MAX13487 + 120Ω 終端 + 560Ω 偏壓，穩定。</p>
+    <p>🎉🎉 整棵樹跑通！PC → 中繼器(Nucleo,addr1) → 末端(addr4)，PC 收到 <code>1-4|{...,"age":小}</code></p>
+    <p class="hint">逐跳前綴(4→1-4)、cache 保鮮、age 即時、快取解耦 全部端到端驗證。下一步：把接線焊死做常駐 demo，再擴樹（REQ|ALL / 疊層）。</p>
   </div>
 
   <h2>路線圖</h2>
@@ -87,11 +87,13 @@
     <div class="row"><span class="dot done">✓</span><div class="txt">協定 + C++ 庫真硬體驗證<small>TTL：Nucleo master ↔ DevEBox 末端，乾淨 4|{...}</small></div></div>
     <div class="row"><span class="dot done">✓</span><div class="txt">去陸製：主控改 STM32<small>ESP32(Espressif)退場；中繼器 MicroPython、末端 C++</small></div></div>
     <div class="row"><span class="dot done">✓</span><div class="txt"><b>真 RS485 跑通</b><small>PC(Python probe)→USB-RS485→MAX13487→STM32；終端+偏壓穩定。附 MAX 自檢工具</small></div></div>
+    <div class="row"><span class="dot done">✓</span><div class="txt">multidrop + 熱插拔容錯<small>addr 4/5 同 bus，拔任一台逾時跳過不卡整體</small></div></div>
+    <div class="row"><span class="dot done">✓</span><div class="txt"><b>樹狀三層端到端跑通</b><small>PC→中繼器(Nucleo C++,addr1)→末端(addr4)，收到 1-4|{...age}；逐跳前綴+cache 解耦</small></div></div>
     <div class="row"><span class="dot done">✓</span><div class="txt">上 GitHub<small>PeiaLo/RS485C</small></div></div>
-    <div class="row"><span class="dot now">▶</span><div class="txt"><b>加第 2 台末端（multidrop）</b><small>addr 5 · 另一顆好 MAX + Nucleo/F103 · 輪詢多台</small></div></div>
-    <div class="row dim"><span class="dot wait"></span><div class="txt">MicroPython 中繼器 + 樹<small>cache + round-robin + 逐跳前綴 1-32-4</small></div></div>
+    <div class="row"><span class="dot now">▶</span><div class="txt"><b>焊死收尾 + 擴樹</b><small>接線焊成可靠 demo；再加末端驗 REQ|ALL、或疊第 2 層 1-1-4</small></div></div>
+    <div class="row dim"><span class="dot wait"></span><div class="txt">中繼器換 MicroPython<small>目前是 C++ Nucleo；改 MicroPython 才是正式模組 B（list/cache 好寫）</small></div></div>
     <div class="row dim"><span class="dot wait"></span><div class="txt">PC 上位機儀表板 + 規則引擎<small>rs485_probe.py 是雛形</small></div></div>
-    <div class="row dim"><span class="dot wait"></span><div class="txt">輸出設備 + CRC + 傳輸層<small>控制/自動控制</small></div></div>
+    <div class="row dim"><span class="dot wait"></span><div class="txt">控制：SET 下行 + role:controller<small>末端接設定點做本地 PID → 取代 PLC</small></div></div>
   </div>
 
   <h2>已鎖定的決策</h2>
@@ -101,17 +103,19 @@
     <div class="chip-row"><span class="k">協定定版</span><span class="v">解碼 per-record emit；lib 只做「框架+位址」，REQ/CFG 留韌體</span></div>
     <div class="chip-row"><span class="k">輸出設備</span><span class="v">暫緩，先把唯讀做穩</span></div>
     <div class="chip-row"><span class="k">主控 MCU</span><span class="v">去陸製 → STM32（末端 C++、中繼器 MicroPython）；ESP32 退場</span></div>
-    <div class="chip-row"><span class="k">收發器</span><span class="v">MAX13487 + 120Ω 終端 + 560Ω 偏壓；A/B 命名各廠相反，不通就對調</span></div>
+    <div class="chip-row"><span class="k">收發器</span><span class="v">MAX13487；/RE 必接 GND（否則收不到）</span></div>
+    <div class="chip-row"><span class="k">接線鐵則</span><span class="v">偏壓必要(A→5V/B→GND ~560Ω)、每組 120Ω 終端必要、A-A/B-B 不交叉；例外：USB-485 標籤相反才在該端交換以還原真 A-A/B-B</span></div>
+    <div class="chip-row"><span class="k">共地</span><span class="v">同一台 PC USB 已共地，桌面可省專用地線；現場獨立供電/長線才必接參考地</span></div>
     <div class="chip-row"><span class="k">WiFi</span><span class="v">暫緩(手上無模組)；若無線傾向 LoRa(STM32WL)；骨幹走有線 Ethernet(W5500)</span></div>
   </div>
 
   <h2>等你回 / 待討論</h2>
   <div class="pending">
     <ul>
-      <li><b>今晚：加第 2 台末端</b> — addr 5，另一顆好 MAX（先用 stm32_maxtest 驗）+ Nucleo/F103。</li>
-      <li><b>驗另外 2 顆 MAX</b> — 用 stm32_maxtest 標記好壞。</li>
-      <li><b>控制協定 + schema 定版</b> — SET 下行 + role:controller（等唯讀做穩再上）。</li>
-      <li><b>輸出設備細節</b> — 通道、斷線安全狀態（你要討論的）。</li>
+      <li><b>焊死收尾</b> — 把 /RE→GND、偏壓、A/B 那幾條焊成可靠常駐 demo（趁接線記憶還在）。</li>
+      <li><b>擴樹</b> — 下層加末端驗 <code>REQ|ALL</code>，或疊第 2 層中繼器（三段位址 1-1-4）。</li>
+      <li><b>中繼器換 MicroPython</b> — 目前是 C++ Nucleo，改成正式模組 B。</li>
+      <li><b>控制協定 + schema 定版</b> — SET 下行 + role:controller（往取代 PLC 走）。</li>
     </ul>
   </div>
 
