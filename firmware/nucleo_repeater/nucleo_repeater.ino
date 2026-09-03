@@ -35,6 +35,7 @@ const int N = sizeof(children) / sizeof(children[0]);
 struct Slot { char path[24]; char json[72]; unsigned long ts; bool fresh; bool valid; };
 Slot cache[N];
 char decBuf[128];
+unsigned long upRx = 0;   // 診斷：上層(USART6)收到的 byte 數
 
 void setup() {
   DBG.begin(115200);
@@ -96,6 +97,7 @@ void serveUpstream() {
   static char rb[40]; static int rl = 0;
   while (UP.available()) {
     char c = UP.read();
+    upRx++;                       // 診斷：數上層收到的 byte
     if (c == '\r' || c == '\n') {
       rb[rl] = 0;
       if (strncmp(rb, "REQ|", 4) == 0) {
@@ -111,8 +113,18 @@ void serveUpstream() {
 }
 
 void loop() {
-  static bool led = false; static unsigned long lt = 0;
+  static bool led = false; static unsigned long lt = 0, st = 0;
   if (millis() - lt > 250) { lt = millis(); led = !led; digitalWrite(LED_BUILTIN, led); }
+
+  // 每秒在 VCP(COM8) 印診斷：上層收到幾 byte + 下層 cache 狀態
+  if (millis() - st > 1000) {
+    st = millis();
+    DBG.print("[repeater] up_rx="); DBG.print(upRx);
+    DBG.print("  cache[0]=");
+    if (cache[0].valid) { DBG.print(cache[0].path); DBG.print(cache[0].fresh ? " fresh" : " stale"); }
+    else DBG.print("(空)");
+    DBG.println();
+  }
 
   for (int i = 0; i < N; i++) {
     pollChild(i);       // 輪詢下層、更新 cache
