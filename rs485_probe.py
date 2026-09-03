@@ -33,7 +33,7 @@ baud = int(sys.argv[3]) if len(sys.argv) > 3 else 115200
 
 print("開 %s @ %d；輪詢位址 %s（每個送 REQ|<addr>\\r），Ctrl+C 停" % (port, baud, addrs))
 try:
-    ser = serial.Serial(port, baud, timeout=0.3)
+    ser = serial.Serial(port, baud, timeout=0.3, write_timeout=1.0)
 except Exception as e:
     print("開埠失敗：", e)
     print("→ 先把所有 Arduino 視窗/序列埠監控關掉（它們佔住 COM）；或 USB 重插、確認 COM 號。")
