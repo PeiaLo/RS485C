@@ -29,7 +29,7 @@ HardwareSerial SerialUp(PC7 /*RX6*/, PC6 /*TX6*/);      // 上層 bus：USART6 +
 #define POLL_TIMEOUT_MS 200
 #define MY_ADDR 1                                        // 本中繼器在上層的本地位址
 
-const uint8_t children[] = {4};                          // 下層末端的本地位址（可加 ,5 等）
+const uint8_t children[] = {4, 5};                       // 下層末端的本地位址（addr5=可搬動測試板；不在時 cache 標 stale 無妨）
 const int N = sizeof(children) / sizeof(children[0]);
 
 struct Slot { char path[24]; char json[96]; unsigned long ts; bool fresh; bool valid; };

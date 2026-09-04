@@ -23,8 +23,15 @@ HardwareSerial SerialBus(PA10 /*RX1*/, PA9 /*TX1*/);
 #define BUS_BAUD 115200
 #define REQ_TIMEOUT_MS 300
 #define WDG_TIMEOUT_US 4000000
-#define MY_ADDR 5              // 第 2 台 = 位址 5
+// 位址選擇腳（測試「末端在不同階層」用，搬板免重燒）：
+//   開路(內部上拉)＝addr5 → 掛在中繼器下層(第二層 bus)，路徑 1-5
+//   接 GND        ＝addr2 → 掛在第一層 backbone bus，PC 直接 REQ|2，路徑單段 2
+// （這是 7 位 DIP 定址的 1-bit 預覽版）
+#define ADDR_SEL_PIN PB0
+#define ADDR_OPEN 5
+#define ADDR_GND  2
 
+uint8_t myAddr = ADDR_OPEN;    // setup 依 ADDR_SEL_PIN 決定
 char  reqBuf[48];
 int   reqLen = 0;
 float gTemp = 20.0;            // 起始溫度跟第 1 台(25)不同，方便一眼分辨
@@ -48,11 +55,14 @@ void detectResetCause() {
 void setup() {
   detectResetCause();          // 最先做，趁旗標還在（IWDG begin 前）
   pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(ADDR_SEL_PIN, INPUT_PULLUP);
+  myAddr = (digitalRead(ADDR_SEL_PIN) == LOW) ? ADDR_GND : ADDR_OPEN;
   DBG.begin(115200);
   BUS.begin(BUS_BAUD);
   delay(200);
   DBG.print("[terminal] up, addr=");
-  DBG.print(MY_ADDR);
+  DBG.print(myAddr);
+  DBG.print(myAddr == ADDR_GND ? " (第一層/backbone)" : " (第二層/中繼器下層)");
   DBG.print(", rst="); DBG.println(gRst);
   IWatchdog.begin(WDG_TIMEOUT_US);
 }
@@ -86,7 +96,7 @@ void loop() {
   if (!readRequest()) return;
   if (strncmp(reqBuf, "REQ|", 4) != 0) return;
   const char* arg = reqBuf + 4;
-  if (!(strcmp(arg, "ALL") == 0 || atoi(arg) == MY_ADDR)) return;
+  if (!(strcmp(arg, "ALL") == 0 || atoi(arg) == myAddr)) return;
 
   char vbuf[10];
   dtostrf(readTempC(), 0, 1, vbuf);
@@ -101,7 +111,7 @@ void loop() {
   strcat(json, gRst);
   strcat(json, "\"}");
   char addr[6];
-  snprintf(addr, sizeof(addr), "%d", MY_ADDR);
+  snprintf(addr, sizeof(addr), "%d", myAddr);
 
   char frame[128];
   int n = rs485c::encode(addr, json, true, frame, sizeof(frame));
