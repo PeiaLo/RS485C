@@ -25,7 +25,7 @@ HardwareSerial SerialUp(PC7 /*RX6*/, PC6 /*TX6*/);      // 上層 bus：USART6 +
 #define DOWN SerialDown
 #define UP   SerialUp                                    // 上層走 RS485(MAX_1)，非 VCP
 #define DBG  Serial                                      // VCP：只做除錯/開機訊息
-#define BAUD 115200
+#define BAUD 38400   // bus baud（降速給麵包板回穩餘裕；所有節點+探針要一致）。VCP除錯仍115200
 #define POLL_TIMEOUT_MS 200
 #define MY_ADDR 1                                        // 本中繼器在上層的本地位址
 
@@ -36,6 +36,9 @@ struct Slot { char path[24]; char json[96]; unsigned long ts; bool fresh; bool v
 Slot cache[N];
 char decBuf[160];
 unsigned long upRx = 0;   // 診斷：上層(USART6)收到的 byte 數
+unsigned long downRx = 0; // 診斷：下層(USART1/MAX_2)收到的 byte 數（分辨 RX 硬體斷 vs 解析被擋）
+unsigned long frames = 0; // 診斷：下層解到幾個完整框(\r)
+char lastFrame[64] = "";  // 診斷：最後解到的框內容（含被拒絕的，看是回音還是回覆）
 
 void setup() {
   DBG.begin(115200);
@@ -59,7 +62,11 @@ void pollChild(int i) {
     serveUpstream();   // 快取解耦：等下層回覆的同時，持續用 cache 回應 PC（不被 200ms 卡住）
     while (DOWN.available()) {
       uint8_t b = DOWN.read();
+      downRx++;                        // 診斷：數下層收到的每個 byte
       if (dec.push(b) == rs485c::FrameDecoder::FRAME_RECORD) {
+        frames++;                                             // 診斷：解到一個完整框
+        strncpy(lastFrame, dec.payload(), sizeof(lastFrame) - 1);
+        lastFrame[sizeof(lastFrame) - 1] = 0;
         char caddr[16], cjson[96]; long crc;
         // 只收位址合法的（濾掉 RS485 半雙工回音/雜訊）
         if (rs485c::parse_payload(dec.payload(), caddr, sizeof(caddr), cjson, sizeof(cjson), &crc)
@@ -121,6 +128,9 @@ void loop() {
   if (millis() - st > 1000) {
     st = millis();
     DBG.print("[repeater] up_rx="); DBG.print(upRx);
+    DBG.print(" down_rx="); DBG.print(downRx);
+    DBG.print(" frames="); DBG.print(frames);
+    DBG.print(" last=\""); DBG.print(lastFrame); DBG.print("\"");
     DBG.print("  cache[0]=");
     if (cache[0].valid) { DBG.print(cache[0].path); DBG.print(cache[0].fresh ? " fresh" : " stale"); }
     else DBG.print("(空)");

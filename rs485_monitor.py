@@ -113,13 +113,20 @@ def parse_arg(arg):
     parts = arg.split(":")
     com = parts[0]
     label = parts[1] if len(parts) > 1 else parts[0]
+    baud = None
+    if "@" in label:                       # 每埠 baud：標籤@baud（如 探針@38400）
+        label, b = label.split("@", 1)
+        try:
+            baud = int(b)
+        except ValueError:
+            baud = None
     probe = parts[3].split(",") if len(parts) >= 4 and parts[2].upper() == "PROBE" else None
-    return com, label, probe
+    return com, label, probe, baud
 
 
 def main():
     ap = argparse.ArgumentParser(description="多埠序列監看")
-    ap.add_argument("ports", nargs="+", help="COMx:標籤 或 COMx:標籤:PROBE:4,5")
+    ap.add_argument("ports", nargs="+", help="COMx:標籤 或 COMx:標籤:PROBE:4,5；每埠可加 @baud（如 探針@38400）")
     ap.add_argument("--baud", type=int, default=115200)
     ap.add_argument("--poll", type=float, default=0.5, help="探針送 REQ 間隔秒")
     a = ap.parse_args()
@@ -127,12 +134,13 @@ def main():
     threads = []
     print("%s多埠監看%s（Ctrl+C 結束）" % (BOLD, RESET))
     for i, arg in enumerate(a.ports):
-        com, label, probe = parse_arg(arg)
+        com, label, probe, pbaud = parse_arg(arg)
+        baud = pbaud if pbaud else a.baud
         color = COLORS[i % len(COLORS)]
         role = "探針" if probe else "監看"
-        print("  %s%-7s%s %s  %s%s" % (color, label, RESET, com, role,
-                                        "  REQ|" + ",".join(probe) if probe else ""))
-        threads.append(Port(com, label, color, a.baud, probe, a.poll))
+        print("  %s%-7s%s %s @%d  %s%s" % (color, label, RESET, com, baud, role,
+                                            "  REQ|" + ",".join(probe) if probe else ""))
+        threads.append(Port(com, label, color, baud, probe, a.poll))
     print()
     for t in threads:
         t.start()

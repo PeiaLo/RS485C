@@ -16,7 +16,7 @@
 
 #define BUS       Serial1
 #define DBG       Serial
-#define BUS_BAUD  115200
+#define BUS_BAUD  38400   // bus baud（降速；所有節點+探針要一致）。VCP除錯仍115200
 #define REQ_TIMEOUT_MS 300
 #define WDG_TIMEOUT_US 4000000    // 4 秒沒 reload 就重置
 

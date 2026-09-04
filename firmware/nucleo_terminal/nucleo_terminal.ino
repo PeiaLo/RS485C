@@ -20,7 +20,7 @@
 HardwareSerial SerialBus(PA10 /*RX1*/, PA9 /*TX1*/);
 #define BUS   SerialBus
 #define DBG   Serial
-#define BUS_BAUD 115200
+#define BUS_BAUD 38400   // bus baud（降速；所有節點+探針要一致）。VCP除錯仍115200
 #define REQ_TIMEOUT_MS 300
 #define WDG_TIMEOUT_US 4000000
 // 位址選擇腳（測試「末端在不同階層」用，搬板免重燒）：
