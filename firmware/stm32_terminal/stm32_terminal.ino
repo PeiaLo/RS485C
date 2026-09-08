@@ -14,14 +14,18 @@
 #include "protocol.h"
 #include <IWatchdog.h>            // STM32 獨立看門狗：卡死自動重開 → 下次開機 rst=iwdg
 
-#define BUS       Serial1
-#define DBG       Serial
+// USART1 PA9(TX)/PA10(RX) → MAX13487 DI/RO。
+// ⚠️ STM32duino 預設不定義 Serial1 這個名字（會 undefined reference），
+//    改用明確腳位自己實例化 HardwareSerial（跟 nucleo_repeater 同做法）。
+HardwareSerial SerialBus(PA10 /*RX1*/, PA9 /*TX1*/);
+#define BUS       SerialBus
+#define DBG       Serial   // USB CDC（COM16 除錯）
 #define BUS_BAUD  38400   // bus baud（降速；所有節點+探針要一致）。VCP除錯仍115200
 #define REQ_TIMEOUT_MS 300
 #define WDG_TIMEOUT_US 4000000    // 4 秒沒 reload 就重置
 
 #define USE_DIP    0
-#define FIXED_ADDR 4
+#define FIXED_ADDR 7   // 深鏈 1-2-3-7 的末端 T7；其他末端燒前改這一個數字
 
 #if USE_DIP
 // 指撥腳（依你的板改）。⚠️ F401CC 是 48 腳封裝，沒有 PC0~PC12（只有 PC13~15），
