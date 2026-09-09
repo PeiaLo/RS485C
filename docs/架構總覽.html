@@ -123,7 +123,7 @@
       <span class="chip">7 階指撥定址</span>
       <span class="chip">\n 未完 · \r 完成</span>
       <span class="chip">輪詢 + cache</span>
-      <span class="chip">MicroPython · Arduino</span>
+      <span class="chip">RP2040 中繼 · STM32 末端</span>
     </div>
   </header>
 
@@ -215,12 +215,12 @@
     <div class="grid2">
       <div class="mini">
         <h3>末端傳感器 <span class="tag">模組 A</span></h3>
-        <p class="role">Arduino / C++ · 葉節點</p>
-        <p>只做驅動與傳輸：讀指撥、讀感測器、被輪詢才回 <span class="m">位址|json\r</span>。不輪詢、不快取、不拼全路徑。</p>
+        <p class="role">C++ / STM32（F411 等）· 智慧節點</p>
+        <p>讀指撥、讀多種外設、可跑本地 PID/邊緣運算，被輪詢才回 <span class="m">位址|json\r</span>（多外設用 batch）。升級成「可掛多異質外設」的節點（見 docs/08）。</p>
       </div>
       <div class="mini">
         <h3>中繼器 <span class="tag">模組 B</span></h3>
-        <p class="role">MicroPython / ESP32 · 分支節點</p>
+        <p class="role">MicroPython / RP2040 · 分支節點</p>
         <p>雙 UART。對下層主動輪詢並快取，對上層被要求才回 cache，並把孩子資料前綴自己的本地位址向上拼路徑。</p>
       </div>
       <div class="mini">
@@ -393,10 +393,10 @@
         <tbody>
           <tr><td><b>C</b> 協定庫 <span class="m">契約</span></td><td>\n/\r 框架編解碼、位址字串操作、跨語言測試向量</td><td>C++ &amp; Python 兩版</td><td>最先做</td></tr>
           <tr><td><b>E</b> JSON schema <span class="m">契約</span></td><td>設備描述 schema + 範例 + 驗證</td><td>JSON</td><td>最先做</td></tr>
-          <tr><td><b>A</b> 末端韌體</td><td>讀指撥 + 感測器驅動 + 打包回報</td><td>Arduino / C++</td><td>C</td></tr>
-          <tr><td><b>B</b> 中繼器韌體</td><td>雙 UART + 輪詢 + cache + 前綴 + 逾時</td><td>MicroPython / ESP32</td><td>C、E</td></tr>
+          <tr><td><b>A</b> 末端韌體</td><td>讀指撥 + 多外設驅動 + 本地 PID/AI + 打包回報</td><td>C++ / STM32</td><td>C</td></tr>
+          <tr><td><b>B</b> 中繼器韌體</td><td>雙 UART + 輪詢 + cache + 前綴 + 逾時</td><td>MicroPython / RP2040</td><td>C、E</td></tr>
           <tr><td><b>D</b> PC 上位機</td><td>請求排程 + 儀表板 + 規則引擎（自動控制）</td><td>Python</td><td>C、E</td></tr>
-          <tr><td><b>F</b> 傳輸層抽象</td><td>RS485 ↔ Ethernet/WiFi 可插拔（解 PC 瓶頸）</td><td>Python / ESP32</td><td>擴充</td></tr>
+          <tr><td><b>F</b> 傳輸層抽象</td><td>RS485 ↔ Ethernet(W5500) 可插拔（解 PC 瓶頸）</td><td>Python / RP2040</td><td>擴充</td></tr>
         </tbody>
       </table>
     </div>
@@ -405,12 +405,12 @@
   <!-- 7 · TEST STAGES -->
   <section>
     <h2><span class="n">07</span> 分階段測試</h2>
-    <p class="sub">用手上硬體：ESP32（中繼器）· Arduino UNO / STM32 / Nucleo（末端）· MAX13487（收發器）。先跑兩節點，再長成樹。</p>
+    <p class="sub">✅ <b>現況：已跑到深鏈 <span class="m">1-2-3-7</span>（4 層）</b>——3×RP2040(MicroPython) 中繼 × 1×STM32(C++) 末端，端到端 <span class="m">7→3-7→2-3-7→1-2-3-7</span> 驗通，Stage 0–2 全數達成並超越。硬體：RP2040(中繼) · STM32 F4(末端) · MAX13487(收發器)。</p>
     <div class="stages">
       <div class="stage"><div class="id">Stage 0</div><div><h4>兩節點點對點</h4><p>ESP32 ↔ UNO 單條 RS485，驗證 \n/\r 串流、指撥讀取、<span class="m">位址|json\r</span> 收送與逾時偵測。</p></div></div>
       <div class="stage"><div class="id">Stage 1</div><div><h4>一中繼器 + 多末端</h4><p>單 bus multidrop，驗證 round-robin 輪詢、cache dict、拔線 → stale 不卡住整條 bus。</p></div></div>
       <div class="stage"><div class="id">Stage 2</div><div><h4>兩層樹</h4><p>PC ↔ 第1層 ↔ 第2層 ↔ 末端。驗證逐跳前綴（末端顯示 <span class="m">1-32-4</span>）、上要下給、讀取與 bus 解耦。</p></div></div>
-      <div class="stage"><div class="id">Stage 3</div><div><h4>規則引擎 + Ethernet/WiFi</h4><p>PC 端條件觸發自動控制；若串列塞車，頂層 ESP32 對 PC 改走 WiFi/Ethernet。</p></div></div>
+      <div class="stage"><div class="id">Stage 3</div><div><h4>規則引擎 + 頂層 Ethernet</h4><p>PC 端條件觸發自動控制；匯聚頻寬爆掉時，頂層改走 <b>Ethernet(W5500)</b>（RP2040-ETH 已內建）。</p></div></div>
     </div>
   </section>
 
@@ -418,25 +418,32 @@
   <section>
     <h2><span class="n">08</span> 決策狀態</h2>
     <div class="callout">
-      <p style="margin:0 0 .3rem;font-family:var(--mono);font-size:.76rem;letter-spacing:.06em;color:var(--accent);">✅ 已定</p>
+      <p style="margin:0 0 .3rem;font-family:var(--mono);font-size:.76rem;letter-spacing:.06em;color:var(--fresh);">🎉 已驗通（真硬體）</p>
       <ul>
-        <li><b>廣播</b> — 保留位址 0（緊急停止用），可用 1–63。</li>
-        <li><b>CRC</b> — 先不做；lib 已預留接口 <span class="m">*&lt;crc16&gt;</span>，要加只動協定庫。</li>
-        <li><b>輸出設備</b> — 暫緩，先把唯讀做穩；自動控制列第二版。</li>
-        <li><b>頂層 5V / 收發器</b> — ESP32(3.3V) 走 WiFi 對 PC 免 5V；末端 AVR+MAX13487，ESP32 的 RO 分壓。</li>
-        <li><b>協定 / schema</b> — 已定版：per-record emit、lib 只做框架+位址；6 型別、Python 49/49、schema 6/6 過。</li>
+        <li><b>深鏈 1-2-3-7（4 層）</b> — 3×RP2040(MicroPython) 中繼 × 1×STM32(C++) 末端，端到端 <span class="m">7→3-7→2-3-7→1-2-3-7</span>。</li>
+        <li><b>核心機制</b> — 逐跳前綴、cache 保鮮+age+解耦、健康監測(up/rst/ok+看門狗)、兩種階層、熱插拔容錯。</li>
       </ul>
-      <p style="margin:.8rem 0 .3rem;font-family:var(--mono);font-size:.76rem;letter-spacing:.06em;color:var(--stale);">⏳ 待你回</p>
+      <p style="margin:.8rem 0 .3rem;font-family:var(--mono);font-size:.76rem;letter-spacing:.06em;color:var(--accent);">✅ 已定</p>
       <ul>
-        <li><b>輸出設備細節</b> — 通道、斷線安全狀態（你要討論的）。</li>
-        <li><b>WiFi 情境</b> — 有沒有跨棟 / 移動設備 / 頻寬爆掉？沒有先全 RS485。</li>
-        <li><b>Stage 0 實機</b> — 2×ESP32 燒錄結果；Stage 1 需 MAX13487 ×3。</li>
+        <li><b>中繼器</b> — RP2040 + MicroPython（雙 UART，小型）／樹莓派 + Python（多區）。F401RE MicroPython 淘汰(只1 UART)、ESP32 退場（去陸製）。</li>
+        <li><b>末端</b> — STM32 + C++（F411 通用；F7/H7 重運算/邊緣AI）。升級成「掛多外設 + 本地 PID/AI」智慧節點（docs/08）。</li>
+        <li><b>收發器</b> — 現行 MAX13487(5V, AutoDir, 要偏壓)；下版選型 MAX13485E 或 <b>TI 3.3V fail-safe</b>(免偏壓+免分壓)。分段：葉端中速長距／主幹高速短距／頂層 Ethernet。</li>
+        <li><b>骨幹</b> — 有線 Ethernet(W5500，RP2040-ETH 內建)；無線暫緩(要用傾向 LoRa)。</li>
+        <li><b>接線鐵則</b> — 每 bus 2×120Ω 終端 + 1 組偏壓；A-A/B-B 不交叉。降 baud(38400) 給麵包板回穩餘裕。</li>
+        <li><b>協定 / schema</b> — per-record emit、lib 只做框架+位址；Python 49/49、schema 6/6。CRC 先不做(已預留接口)。</li>
+      </ul>
+      <p style="margin:.8rem 0 .3rem;font-family:var(--mono);font-size:.76rem;letter-spacing:.06em;color:var(--stale);">⏳ 待辦 / 下一步</p>
+      <ul>
+        <li><b>焊死收尾</b> — 麵包板 → 焊板（多節點訊號穩定性天花板）。</li>
+        <li><b>末端外設 Driver</b> — docs/08：多異質外設 + driver 表 + 本地 PID/邊緣 AI。</li>
+        <li><b>控制協定</b> — SET 下行 + <span class="m">role:controller</span>（往取代 PLC）。</li>
+        <li><b>指撥定址實裝 + age 疊層小 bug</b> — addr 目前寫死；多跳回傳 age 疊了 3 層(功能無礙)。</li>
       </ul>
     </div>
   </section>
 
   <footer>
-    RS485_C · 系統架構總覽 — 詳細文件見專案 <code>docs\</code>（01 架構 · 02 協定 · 03 定址 · 04 模組拆分 · 05 測試 · 06 待確認）。
+    RS485_C · 系統架構總覽 — 詳細文件見專案 <code>docs\</code>（01 架構 · 02 協定 · 03 定址 · 04 模組拆分 · 05 測試 · 06 決策 · 07 採購 · 08 末端外設/Driver/韌性）。
     接替並取代舊 <code>R_C_MOD</code>，與 <code>ACL_001</code> 為獨立項目。
   </footer>
 </div>
