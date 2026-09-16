@@ -4,7 +4,7 @@
 PC 端根 master：向第 1 層中繼器要資料、解析、儀表板顯示，並依條件自動控制。
 
 ## 範圍
-- **要做**：連線（`pyserial`）、請求排程（`REQ|<addr|ALL>`）、解析框架→即時值表（key=完整位址；REQ 值為**純值 CSV**，靠 descriptor 還原型別/單位；驗 CRC）、設備資料庫/型錄（用 schema）、儀表板（先 CLI/tkinter→PyQt6）、規則引擎（條件→動作，觸發 `SET` 下行需 ACK）、log/匯出。
+- **要做**：連線（`pyserial`）、請求排程（`REQ|<addr|ALL>`，位址到**節點**）、解析**私有格式 `0xFE`** 框架→即時值表（key=節點路徑；值為 descriptor 定序 CSV，靠 descriptor 還原型別/單位；`\r` 前驗 CRC）、設備資料庫/型錄（用 schema）、儀表板（先 CLI/tkinter→PyQt6）、規則引擎（條件→動作，觸發 `SET` 下行需 ACK）、log/匯出。
 - **對客戶北向**：可暴露 **MODBUS-TCP + MQTT**（collector 模式，見 [docs/09](../docs/09_軟體架構定案.md)）。
 - **先做骨架**：規則引擎的「輸出動作」先留介面（輸出設備第二版才實作）。
 - **傳輸層**：先只做序列埠；之後接模組 F 換 Ethernet。
