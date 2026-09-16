@@ -13,18 +13,18 @@
 
 | 名詞 | 定義 |
 |---|---|
-| **Node（末端節點）** | 一顆 MCU = 一個 bus 位址。掛 0..N 個外設。 |
-| **Peripheral（外設）** | 掛在 node 上的一個單元，有 local id（= path 最深段）。分**物理**（感測/驅動）與**邏輯功能塊**（PID/邊緣AI）。 |
+| **Node（末端節點）** | 一顆 MCU = 一個 bus 位址（樹狀定址的最深單位）。掛 0..N 個外設。 |
+| **Peripheral（外設）** | node 底下一個單元，有 **local id（descriptor 索引，非 path 段、不進樹狀定址）**。分**物理**（感測/驅動）與**邏輯功能塊**（PID/邊緣AI）。外部外設由 node **MODBUS master** 讀進 cache。 |
 | **Driver** | 某 `type` 對應的採集+換算實作。 |
 | **Segment（段）** | 兩台之間的一條獨立 RS485 bus（各自收發器/終端/baud）。 |
-| **Path（位址路徑）** | 中繼器鏈 + node + 外設，每段 1–63，例 `1-2-3-7-1`。 |
+| **Path（位址路徑）** | 中繼器鏈 + node，每段 1–63，例 `1-2-3-7`（**只到 node，不含外設**）。 |
 
 ## 3. 硬體基準（角色與平台）
 
 | 角色 | 平台 | 語言 | UART | 備註 |
 |---|---|---|---|---|
-| 中繼器 | **RP2040** | MicroPython | 雙（up=slave/PC 側、down=master/子側） | up/down 各一顆 MAX |
-| 末端 | **STM32**（FT 5V 容忍） | C++ | 單 bus + 本地外設 | 可跑 PID/AI |
+| 中繼器 | **RP2040** | MicroPython | 雙（up=私有 slave、down=葉段 **MODBUS master** 對末端） | up/down 各一顆 MAX |
+| 末端 | **STM32**（FT 5V 容忍） | C++ | 雙（up=**MODBUS slave** 對中繼器、down=**MODBUS master@115200** 對外部外設） | 可跑 PID/AI；外設值進 cache |
 | 上位機(D) | PC | Python | — | rs485_monitor / rs485_probe |
 
 ### 3.1 末端 MCU 分級（2026-09-09）
@@ -66,18 +66,30 @@
 - **RP2040 非 5V 容忍** → 5V 收發器 `RO→RX` 分壓 1.8k/3.3k(5V→3.24V)；**STM32 FT 腳 或 3.3V 收發器 → 直接**。收發器 `VCC` 取板子 5V(VBUS) 或 3.3V(依件)。
 - **手動 DE/RE 件**：DE(高有效)+/RE(低有效) **綁同一 GPIO**（高=發送/低=接收）；⚠️ 發送前拉高、**`uart.txdone()`/`flush()` 後才放**（放早截尾巴）。韌體留 `MANUAL_DIR` 旗標好切回 AutoDir 件。
 
-## 4. 定址模型
+## 4. 定址模型（2026-09-16 修正：外設不進樹狀定址）
 
 ```
-1 - 2 - 3 - 7 - 1
-│   │   │   │   └ 外設 local id（node 內排序）
-│   │   │   └ node（末端，一顆 MCU）
+1 - 2 - 3 - 7          ← path 只到 node（末端）
+│   │   │   └ node（末端，一顆 MCU）= 樹狀定址最深單位
 └───┴───┴ 中繼器鏈（每經一台前綴一段）
+
+     └ node 內：外設由 descriptor 索引（id 0,1,2…），非 path 段
 ```
 
-- **外設 = 最深一段 path**：一等公民，可被單獨定址 / 路由 / 下規則 / 各自健康狀態。
-- **位址 = 位置（where）**；**descriptor = 定義（what）**。位址不告訴你外設是什麼，要靠 `DESC` 抓說明書對映。
-- 樹狀 + 前綴聚合：每層把孩子路徑接上自己位址（`7-1` → `3-7-1` → … → `1-2-3-7-1`）。
+- **path 只到 node**（不再是 `1-2-3-7-1`）。**外設不進樹狀定址**——由 node MCU 抓值（外部外設走 MODBUS@115200）放進本地 cache，靠 **descriptor 索引**組織。要某外設值＝向該 **node** `REQ`，由它從 cache 提供（descriptor 定順序）。
+- **位址 = 位置（where，到 node）**；**descriptor = 定義（what，含外設清單與抓取方式）**。
+- 樹狀 + 前綴聚合：每層把孩子路徑接上自己位址（`7` → `3-7` → … → `1-2-3-7`）。
+- **理由**：外設數量多時，若每個都佔一個 bus 位址會爆掉且與外部 MODBUS 設備衝突；改由 node 聚合、cache、以 MODBUS 暫存器對上呈現，定址乾淨、與 MODBUS 相容。（取代先前「外設＝一等公民可單獨定址」模型，見 [06 §N](06_設計決策與待確認.md)。）
+
+### 4.1 傳輸分層（edge=MODBUS / core=私有）
+
+| 鏈路 | 格式 | master | 速度 |
+|---|---|---|---|
+| 末端 ↔ 外部外設 | **MODBUS RTU** | 末端 | 115200 |
+| 末端 ↔ 中繼器（葉上行） | **MODBUS RTU**（末端 cache 值 = 暫存器） | 中繼器 | 依葉段 |
+| 中繼器 ↔ 中繼器／PC（骨幹） | **私有格式 `0xFE`** + `*<crc>\r` | 逐跳前綴 | **高速** |
+
+**第一台中繼器**把末端 MODBUS 讀值**轉成私有格式**、開始長 path。第一 byte 判別（`1-63`/`0xFF`=MODBUS、`0xFE`=私有）見 [02 §3.1](02_通訊協定.md)。
 
 ## 5. 兩種 JSON × 三種請求
 
@@ -97,9 +109,10 @@
 node descriptor
 ├ node 身分（model/vendor/fw/id）
 └ peripherals[]
-    ├ id            外設 local id（= path 最深段）
+    ├ id            外設 local id（descriptor 索引 0,1,2…；非 path 段）
     ├ type          TC-K / PRS-420 / LOADCELL / FLOW / PID / AI-xxx …
-    ├ binding       採集介面：adc(PA0) / spi(max31855) / i2c / pulse(gpio)
+    ├ binding       本地採集：adc(PA0) / spi(max31855) / i2c / pulse(gpio)
+    │               外部 MODBUS：modbus{regtype/addr/fc/dtype/word_order/scale}
     │               邏輯塊：in=<外設id> / out=<外設id> / model=…
     ├ driver        對應 type 的實作（見 §7）
     ├ calibration   slope/offset…（換算用，見 §7）
@@ -108,14 +121,40 @@ node descriptor
 
 每個 peripheral ≈ 一份現有 device.schema 內容，多 `binding`+`driver`。
 
+### 6.1 外部 MODBUS 外設綁定（`binding.modbus`）
+
+末端當 **MODBUS master** 讀外部外設時，descriptor 用一個 `modbus` 區塊定義「怎麼抓、怎麼還原」：
+
+```json
+"binding": { "modbus": {
+  "slave": 3, "regtype": "input", "addr": 30001, "fc": 4,
+  "dtype": "float32", "word_order": "big", "scale": 0.1
+}}
+```
+
+- `regtype`↔role 對映：離散輸入(0x02)=DI 感測、線圈(0x01)=DO 輸出、輸入暫存器(0x04)=類比感測、保持暫存器(0x03/06)=類比輸出/設定點。Modicon 佈局 3xxxx/4xxxx。
+- ⚠️ **`word_order` + `scale` 必填**：MODBUS 字序/縮放錯會「靜默給錯數值、藏好幾個月」——一律在 descriptor 明寫。
+
+### 6.2 末端 → 中繼器的 MODBUS 暫存器佈局（提案，待確認）
+
+末端把 cache 的外設值以 **MODBUS 暫存器**呈現給中繼器輪詢。**佈局由末端自定義**（你之後拍板）；以下為預設提案：
+
+- 外設值依 descriptor 順序排進**輸入暫存器**（`3xxxx`，FC04）：外設0→30001、外設1→30002…（多字型別佔連續 word，`word_order` 隨 descriptor）。
+- 健康/狀態（`ok`/`up`/`rst`）另置一段保留暫存器；設定/`SET` 走**保持暫存器**（`4xxxx`，FC06/16）。
+- 中繼器一次 FC04 讀整塊 → 照 descriptor 還原 → 轉私有格式上骨幹。
+- DESC/JSON（首次+10s 存活）走 **`0xFE` 私有 frame**（MODBUS 暫存器塞不下 JSON）。
+
+> 標為**待確認**：確切起始位址、健康段位置、多字型別對齊由末端定案後補。
+
 ## 7. 外設與 Driver 模型
 
 ### 7.1 兩類外設
 
 | 類 | 例 | binding | REQ 回 | SET 寫 |
 |---|---|---|---|---|
-| 物理感測 | 熱電偶/壓力/流量/重量 | adc/spi/i2c/pulse | 量測值 | — |
-| 物理驅動 | 繼電器/PWM | gpio/pwm | 輸出狀態 | 開關/類比值 |
+| 物理感測（本地） | 熱電偶/壓力/流量/重量 | adc/spi/i2c/pulse | 量測值 | — |
+| 物理驅動（本地） | 繼電器/PWM | gpio/pwm | 輸出狀態 | 開關/類比值 |
+| **外部 MODBUS 外設** | PLC 感測/驅動模組 | **modbus**（末端=master@115200，見 §6.1） | 讀值（照 descriptor 還原） | 寫 coil/holding reg |
 | 邏輯·PID | 閉環控制 | in=感測外設, out=驅動外設 | sp/pv/out/mode | setpoint、Kp/Ki/Kd |
 | 邏輯·邊緣AI | 本地推論 | in=感測外設, model | 推論結果/分類 | enable、切模型 |
 
@@ -201,14 +240,15 @@ node descriptor
 
 ## 11. 沿用不變
 
-框架 `<path>|<payload>\r`（batch 用 `\n`）、`FrameDecoder` per-record、位址操作（prefix/split/valid 1–63）、CRC 保留未啟用、健康 envelope。皆見 [02](02_通訊協定.md) / [../schema/](../schema)。
+私有格式 `0xFE <path>|<payload>*<crc>\r`（骨幹；batch 用 `\n`）、`FrameDecoder` per-record、位址操作（prefix/split/valid 1–63，path 到 node）、**CRC-16/MODBUS 啟用（`\r` 前驗）**、健康 envelope。edge 走 MODBUS（見 §4.1、[02 §3.1](02_通訊協定.md)）。皆見 [02](02_通訊協定.md) / [../schema/](../schema)。
 
 ## 12. 對現有韌體的影響（僅記錄，本文不改碼）
 
-1. **中繼器**：`poll_child` 由「收第一框就返回」→ **收整個 batch、快取多筆**；允許 `up_baud ≠ down_baud`。
-2. **末端**：由「回固定一筆」→ **本地版中繼器**（serve 每個外設 + 支援 `DESC`/`REQ`/`SET`）。
-3. **新增** driver 登錄表 + 背景取樣快取；新增 `SET` 動詞。
-4. **schema**：descriptor 擴 `peripherals[]` + 每項 `binding`/`driver`。
+1. **中繼器**：down 對末端改當 **MODBUS master**（FC03/04 讀末端暫存器塊）；up 對骨幹送 **私有格式**；`up_baud ≠ down_baud`。
+2. **末端**：新增 **雙 MODBUS 角色**——up 當 **MODBUS slave**（把 cache 外設值/健康以暫存器呈現，§6.2）、down 當 **MODBUS master@115200** 讀外部外設（§6.1）；DESC/JSON 走 `0xFE` 私有 frame。
+3. **新增** driver 登錄表 + 背景取樣快取 + MODBUS master/slave 堆疊；`SET` 走保持暫存器/coil。
+4. **schema**：descriptor 擴 `peripherals[]` + 每項 `binding`（含 `modbus` 區塊）/`driver`。
+5. **協定庫**：啟用 CRC-16/MODBUS；第一 byte 判別（MODBUS vs `0xFE` 私有）。
 
 ## 13. 已知議題
 
