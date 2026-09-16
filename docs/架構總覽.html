@@ -140,7 +140,7 @@
           <!-- PC -->
           <rect x="300" y="16" width="160" height="46" rx="8" fill="var(--accent-soft)" stroke="var(--accent)"/>
           <text x="380" y="38" text-anchor="middle" font-family="var(--sans)" font-size="15" font-weight="700" fill="var(--ink)">PC 上位機</text>
-          <text x="380" y="54" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--ink-2)">頂層 · 5V · 未來 Ethernet/WiFi</text>
+          <text x="380" y="54" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--ink-2)">頂層 · 未來 Ethernet(W5500)</text>
 
           <!-- bus L1 -->
           <line x1="380" y1="62" x2="380" y2="86" stroke="var(--wire)" stroke-width="2"/>
@@ -407,7 +407,7 @@
     <h2><span class="n">07</span> 分階段測試</h2>
     <p class="sub">✅ <b>現況：已跑到深鏈 <span class="m">1-2-3-7</span>（4 層）</b>——3×RP2040(MicroPython) 中繼 × 1×STM32(C++) 末端，端到端 <span class="m">7→3-7→2-3-7→1-2-3-7</span> 驗通，Stage 0–2 全數達成並超越。硬體：RP2040(中繼) · STM32 F4(末端) · MAX13487(收發器)。</p>
     <div class="stages">
-      <div class="stage"><div class="id">Stage 0</div><div><h4>兩節點點對點</h4><p>ESP32 ↔ UNO 單條 RS485，驗證 \n/\r 串流、指撥讀取、<span class="m">位址|json\r</span> 收送與逾時偵測。</p></div></div>
+      <div class="stage"><div class="id">Stage 0</div><div><h4>兩節點點對點</h4><p>RP2040 ↔ STM32 單條 RS485，驗證 \n/\r 串流、指撥讀取、<span class="m">位址|payload\r</span> 收送與逾時偵測。</p></div></div>
       <div class="stage"><div class="id">Stage 1</div><div><h4>一中繼器 + 多末端</h4><p>單 bus multidrop，驗證 round-robin 輪詢、cache dict、拔線 → stale 不卡住整條 bus。</p></div></div>
       <div class="stage"><div class="id">Stage 2</div><div><h4>兩層樹</h4><p>PC ↔ 第1層 ↔ 第2層 ↔ 末端。驗證逐跳前綴（末端顯示 <span class="m">1-32-4</span>）、上要下給、讀取與 bus 解耦。</p></div></div>
       <div class="stage"><div class="id">Stage 3</div><div><h4>規則引擎 + 頂層 Ethernet</h4><p>PC 端條件觸發自動控制；匯聚頻寬爆掉時，頂層改走 <b>Ethernet(W5500)</b>（RP2040-ETH 已內建）。</p></div></div>

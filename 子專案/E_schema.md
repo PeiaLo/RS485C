@@ -4,8 +4,10 @@
 定義「設備身分/能力」的 JSON schema 與設備庫，讓末端存自有 JSON、中繼器辨識下層、PC 顯示。
 
 ## 範圍
-- **要做**：完善 `device.schema.json`、補足各設備型別範例（溫度/壓力/…）、寫**驗證腳本**跑範例對 schema、定義「量測 payload」單行格式與 schema 對應。
-- **要一起想**：未來輸出設備（`role:"output"`）的欄位（通道、斷線安全狀態）先佔位，實作暫緩。
+- **要做**：完善 `device.schema.json`（node 身分 + `peripherals[]`：type/binding/driver/calibration/measurements）、補足各設備型別範例、寫**驗證腳本**跑範例對 schema。
+- **關鍵**：descriptor 是 **DESC(JSON) 的內容，同時定義 REQ 純值 CSV 的欄位順序**（見 [docs/02 §3.1](../docs/02_通訊協定.md)）——schema 要能明確表達 measurements 的順序。
+- **要做**：外部 MODBUS 綁定 `modbus` 區塊（regtype/addr/fc/dtype/word_order/scale）先佔位（見 [docs/08](../docs/08_末端外設_Driver_韌性架構.md)）。
+- **要一起想**：輸出設備（`role:"output"`）的欄位（通道、斷線安全狀態）先佔位，實作暫緩。
 - **不做**：韌體/上位機程式（那是 A/B/D）。
 
 ## 依賴契約
@@ -18,7 +20,7 @@
 
 ## 完成定義（DoD）
 - 所有 `examples/*.json` 跑 `validate.py` 全過。
-- 量測 payload 的單行格式（如 `{"t":"TMP","v":26.7,...}`）與 schema `type/measurements` 對得起來。
+- descriptor 的 `measurements` 順序能唯一決定 REQ 純值 CSV 欄位（如 descriptor 定 `[TMP,PRS]` → CSV `25.1,1013`），型別/單位由 schema 還原。
 
 ## 目前狀態
 `device.schema.json` + 溫度/壓力兩範例已建立（見 [schema/](../schema)）；缺驗證腳本與更多型別。
