@@ -1,0 +1,174 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 920" font-family="'Segoe UI','Microsoft JhengHei',sans-serif">
+  <rect x="0" y="0" width="1200" height="920" fill="#f8f9fa"/>
+  <text x="600" y="34" text-anchor="middle" font-size="22" font-weight="700" fill="#212529">RS485_C 硬體架構 — 4 中繼器 + Pico Mini（驗證錨點）</text>
+  <text x="600" y="56" text-anchor="middle" font-size="13" fill="#868e96">proven 深鏈 PC→R1→R2→R3 不動 · R3 下層升級 multidrop+混掛 · 新增 R4(Pico Mini) 帶葉 bus · 收發器 MAX13487(5V)</text>
+
+  <!-- 圖例 -->
+  <g font-size="12" fill="#495057">
+    <rect x="40" y="70" width="14" height="14" fill="#e03131"/><text x="60" y="82">5V</text>
+    <rect x="105" y="70" width="14" height="14" fill="#1971c2"/><text x="125" y="82">3.3V</text>
+    <rect x="180" y="70" width="14" height="14" fill="#2f9e44"/><text x="200" y="82">A/B 差動 bus</text>
+    <rect x="300" y="70" width="14" height="14" fill="#495057"/><text x="320" y="82">GND</text>
+    <rect x="360" y="70" width="14" height="14" fill="#f08c00"/><text x="380" y="82">終端/偏壓電阻</text>
+    <rect x="480" y="70" width="14" height="14" fill="#fff" stroke="#e8590c" stroke-width="2"/><text x="500" y="82">中繼器</text>
+    <rect x="560" y="70" width="14" height="14" fill="#fff" stroke="#d6336c" stroke-width="2"/><text x="580" y="82">新增(R4)</text>
+    <rect x="645" y="70" width="14" height="14" fill="#fff" stroke="#2b8a3e" stroke-width="2"/><text x="665" y="82">末端</text>
+  </g>
+
+  <!-- ================= Panel 1：系統樹 ================= -->
+  <text x="40" y="118" font-size="16" font-weight="700" fill="#212529">① 系統樹（5 條獨立 RS485 段：U / M / L / XL / 葉）</text>
+
+  <!-- 骨幹橫列 -->
+  <g font-size="11">
+    <!-- PC -->
+    <rect x="30" y="150" width="66" height="54" rx="6" fill="#e7f5ff" stroke="#1971c2"/>
+    <text x="63" y="174" text-anchor="middle" font-size="13" font-weight="700" fill="#1971c2">PC</text>
+    <text x="63" y="192" text-anchor="middle" fill="#495057">master</text>
+    <!-- dongle -->
+    <rect x="122" y="146" width="96" height="62" rx="6" fill="#fff" stroke="#343a40"/>
+    <text x="170" y="168" text-anchor="middle" font-weight="700">USB-485</text>
+    <text x="170" y="184" text-anchor="middle" fill="#495057">dongle</text>
+    <text x="170" y="199" text-anchor="middle" fill="#868e96" font-size="10">(自帶偏壓)</text>
+    <!-- R1 -->
+    <rect x="282" y="142" width="116" height="80" rx="6" fill="#fff" stroke="#e8590c" stroke-width="2"/>
+    <text x="340" y="164" text-anchor="middle" font-weight="700" fill="#e8590c">R1 · 中繼器</text>
+    <text x="340" y="182" text-anchor="middle">RP2040</text>
+    <text x="340" y="200" text-anchor="middle" font-weight="700">addr 1 → 1</text>
+    <text x="340" y="216" text-anchor="middle" fill="#495057" font-size="10">MCU 3V3 / VCC 5V</text>
+    <!-- R2 -->
+    <rect x="462" y="142" width="116" height="80" rx="6" fill="#fff" stroke="#e8590c" stroke-width="2"/>
+    <text x="520" y="164" text-anchor="middle" font-weight="700" fill="#e8590c">R2 · 中繼器</text>
+    <text x="520" y="182" text-anchor="middle">RP2040</text>
+    <text x="520" y="200" text-anchor="middle" font-weight="700">addr 2 → 1-2</text>
+    <text x="520" y="216" text-anchor="middle" fill="#495057" font-size="10">MCU 3V3 / VCC 5V</text>
+    <!-- R3 -->
+    <rect x="642" y="142" width="116" height="80" rx="6" fill="#fff" stroke="#e8590c" stroke-width="2"/>
+    <text x="700" y="164" text-anchor="middle" font-weight="700" fill="#e8590c">R3 · 中繼器</text>
+    <text x="700" y="182" text-anchor="middle">RP2040</text>
+    <text x="700" y="200" text-anchor="middle" font-weight="700">addr 3 → 1-2-3</text>
+    <text x="700" y="216" text-anchor="middle" fill="#495057" font-size="10">MCU 3V3 / VCC 5V</text>
+  </g>
+
+  <!-- 骨幹連線 -->
+  <g stroke-width="3">
+    <line x1="96" y1="177" x2="122" y2="177" stroke="#868e96" stroke-width="2"/>
+    <line x1="218" y1="177" x2="282" y2="182" stroke="#2f9e44"/>
+    <line x1="398" y1="182" x2="462" y2="182" stroke="#2f9e44"/>
+    <line x1="578" y1="182" x2="642" y2="182" stroke="#2f9e44"/>
+  </g>
+  <g font-size="11" fill="#2b8a3e" text-anchor="middle" font-weight="700">
+    <text x="250" y="170">bus U</text>
+    <text x="430" y="172">bus M</text>
+    <text x="610" y="172">bus L</text>
+  </g>
+  <g font-size="9" fill="#868e96" text-anchor="middle">
+    <text x="250" y="200">dongle 偏壓</text>
+    <text x="430" y="198">120Ω×2·偏壓@R1</text>
+    <text x="610" y="198">120Ω×2·偏壓@R2</text>
+  </g>
+
+  <!-- R3 下行到 XL bus -->
+  <line x1="700" y1="222" x2="700" y2="300" stroke="#495057" stroke-width="2"/>
+
+  <!-- XL bus 線 -->
+  <line x1="150" y1="300" x2="1060" y2="300" stroke="#2f9e44" stroke-width="4"/>
+  <text x="150" y="292" font-size="12" font-weight="700" fill="#2b8a3e">XL bus · multidrop（A/B/GND）</text>
+  <text x="1055" y="292" font-size="10" fill="#868e96" text-anchor="end">R3 為 master · 偏壓一組@R3(down)</text>
+  <!-- XL 終端 -->
+  <rect x="140" y="292" width="30" height="16" fill="#ffec99" stroke="#f08c00"/><text x="155" y="304" text-anchor="middle" font-size="9" font-weight="700" fill="#5c3d00">120Ω</text>
+  <text x="155" y="322" text-anchor="middle" font-size="9" fill="#868e96">終端(左端)</text>
+  <rect x="1040" y="292" width="30" height="16" fill="#ffec99" stroke="#f08c00"/><text x="1055" y="304" text-anchor="middle" font-size="9" font-weight="700" fill="#5c3d00">120Ω</text>
+  <text x="1055" y="322" text-anchor="middle" font-size="9" fill="#868e96">終端(右端)</text>
+  <!-- XL 偏壓（放 R3 drop 處） -->
+  <rect x="712" y="270" width="60" height="16" fill="#ffec99" stroke="#f08c00"/><text x="742" y="282" text-anchor="middle" font-size="9" font-weight="700" fill="#5c3d00">2×560Ω</text>
+  <text x="742" y="262" text-anchor="middle" font-size="9" fill="#e8590c" font-weight="700">偏壓@R3</text>
+
+  <!-- XL 掛載 stubs -->
+  <g stroke="#2f9e44" stroke-width="2">
+    <line x1="225" y1="300" x2="225" y2="352"/>
+    <line x1="455" y1="300" x2="455" y2="352"/>
+    <line x1="810" y1="300" x2="810" y2="352"/>
+  </g>
+
+  <!-- XL 掛載盒 -->
+  <g font-size="11">
+    <!-- T7 -->
+    <rect x="150" y="352" width="150" height="76" rx="6" fill="#fff" stroke="#2b8a3e" stroke-width="2"/>
+    <text x="225" y="374" text-anchor="middle" font-weight="700" fill="#2b8a3e">T7 · 末端</text>
+    <text x="225" y="392" text-anchor="middle">STM32 F411（既有）</text>
+    <text x="225" y="410" text-anchor="middle" font-weight="700">addr 7 → 1-2-3-7</text>
+    <text x="225" y="424" text-anchor="middle" font-size="9" fill="#495057">RO 直接·免分壓</text>
+    <!-- F103-a -->
+    <rect x="380" y="352" width="150" height="76" rx="6" fill="#fff" stroke="#2b8a3e" stroke-width="2"/>
+    <text x="455" y="374" text-anchor="middle" font-weight="700" fill="#2b8a3e">F103-a · 末端</text>
+    <text x="455" y="392" text-anchor="middle">STM32 F103</text>
+    <text x="455" y="410" text-anchor="middle" font-weight="700">addr 5 → 1-2-3-5</text>
+    <text x="455" y="424" text-anchor="middle" font-size="9" fill="#495057">RO 直接·免分壓</text>
+    <!-- R4 新增 -->
+    <rect x="720" y="348" width="180" height="84" rx="6" fill="#fff" stroke="#d6336c" stroke-width="2.5"/>
+    <text x="810" y="370" text-anchor="middle" font-weight="700" fill="#d6336c">★ R4 · 中繼器（新增）</text>
+    <text x="810" y="388" text-anchor="middle">RP2040 Pico Mini</text>
+    <text x="810" y="406" text-anchor="middle" font-weight="700">addr 4 → 1-2-3-4</text>
+    <text x="810" y="422" text-anchor="middle" font-size="9" fill="#c92a2a">RP2040 非5V容忍 · RO→RX 分壓</text>
+  </g>
+
+  <!-- R4 下行到葉 bus -->
+  <line x1="810" y1="432" x2="810" y2="490" stroke="#495057" stroke-width="2"/>
+
+  <!-- 葉 bus 線 -->
+  <line x1="560" y1="490" x2="1160" y2="490" stroke="#2f9e44" stroke-width="4"/>
+  <text x="560" y="482" font-size="12" font-weight="700" fill="#2b8a3e">葉 bus · multidrop（A/B/GND）</text>
+  <text x="1155" y="482" font-size="10" fill="#868e96" text-anchor="end">R4 為 master · 偏壓一組@R4(down)</text>
+  <!-- 葉 終端 -->
+  <rect x="550" y="482" width="30" height="16" fill="#ffec99" stroke="#f08c00"/><text x="565" y="494" text-anchor="middle" font-size="9" font-weight="700" fill="#5c3d00">120Ω</text>
+  <rect x="1140" y="482" width="30" height="16" fill="#ffec99" stroke="#f08c00"/><text x="1155" y="494" text-anchor="middle" font-size="9" font-weight="700" fill="#5c3d00">120Ω</text>
+  <!-- 葉 偏壓 -->
+  <rect x="780" y="460" width="60" height="16" fill="#ffec99" stroke="#f08c00"/><text x="810" y="472" text-anchor="middle" font-size="9" font-weight="700" fill="#5c3d00">2×560Ω</text>
+  <text x="810" y="452" text-anchor="middle" font-size="9" fill="#e8590c" font-weight="700">偏壓@R4</text>
+
+  <!-- 葉 stubs -->
+  <g stroke="#2f9e44" stroke-width="2">
+    <line x1="640" y1="490" x2="640" y2="540"/>
+    <line x1="800" y1="490" x2="800" y2="540"/>
+    <line x1="960" y1="490" x2="960" y2="540"/>
+    <line x1="1100" y1="490" x2="1100" y2="540"/>
+  </g>
+
+  <!-- 葉 掛載盒 -->
+  <g font-size="11">
+    <rect x="575" y="540" width="130" height="72" rx="6" fill="#fff" stroke="#2b8a3e" stroke-width="2"/>
+    <text x="640" y="562" text-anchor="middle" font-weight="700" fill="#2b8a3e">F411-a</text>
+    <text x="640" y="580" text-anchor="middle">STM32 F411</text>
+    <text x="640" y="598" text-anchor="middle" font-weight="700" font-size="10">addr 5 → 1-2-3-4-5</text>
+
+    <rect x="735" y="540" width="130" height="72" rx="6" fill="#fff" stroke="#2b8a3e" stroke-width="2"/>
+    <text x="800" y="562" text-anchor="middle" font-weight="700" fill="#2b8a3e">F411-b</text>
+    <text x="800" y="580" text-anchor="middle">STM32 F411</text>
+    <text x="800" y="598" text-anchor="middle" font-weight="700" font-size="10">addr 6 → 1-2-3-4-6</text>
+
+    <rect x="895" y="540" width="130" height="72" rx="6" fill="#fff" stroke="#2b8a3e" stroke-width="2"/>
+    <text x="960" y="562" text-anchor="middle" font-weight="700" fill="#2b8a3e">F401</text>
+    <text x="960" y="580" text-anchor="middle">STM32 F401</text>
+    <text x="960" y="598" text-anchor="middle" font-weight="700" font-size="10">addr 7 → 1-2-3-4-7</text>
+
+    <rect x="1035" y="540" width="130" height="72" rx="6" fill="#fff" stroke="#2b8a3e" stroke-width="2"/>
+    <text x="1100" y="562" text-anchor="middle" font-weight="700" fill="#2b8a3e">F103-b</text>
+    <text x="1100" y="580" text-anchor="middle">STM32 F103</text>
+    <text x="1100" y="598" text-anchor="middle" font-weight="700" font-size="10">addr 8 → 1-2-3-4-8</text>
+  </g>
+
+  <!-- 位址碰撞註記 -->
+  <text x="40" y="648" font-size="12" fill="#495057">刻意的位址碰撞：<tspan font-weight="700" fill="#212529">DIP 5</tspan> = 1-2-3-5(F103) vs 1-2-3-4-5(F411)；<tspan font-weight="700" fill="#212529">DIP 7</tspan> = 1-2-3-7(F411) vs 1-2-3-4-7(F401) → 上層靠完整 path 區分。</text>
+
+  <!-- ================= Panel 2：電氣規則 ================= -->
+  <text x="40" y="690" font-size="16" font-weight="700" fill="#212529">② 每段 bus 電氣規則</text>
+  <rect x="30" y="704" width="1140" height="180" rx="6" fill="#fff" stroke="#dee2e6"/>
+  <g font-size="12.5" fill="#343a40">
+    <text x="46" y="730"><tspan font-weight="700" fill="#f08c00">終端</tspan>：每條 bus <tspan font-weight="700">物理兩端各 120Ω</tspan>（跨 A-B）；multidrop 中間節點不放終端。</text>
+    <text x="46" y="756"><tspan font-weight="700" fill="#f08c00">偏壓</tspan>：每條 bus <tspan font-weight="700">只一組 2×560Ω</tspan>（A→5V / B→GND），放<tspan font-weight="700">下行 master 側</tspan>（R1/R2/R3/R4 各一組；bus U 由 dongle 自帶）。<tspan fill="#c92a2a" font-weight="700">末端板不放偏壓</tspan>。</text>
+    <text x="46" y="782"><tspan font-weight="700" fill="#1971c2">準位</tspan>：RP2040(非5V容忍) <tspan font-weight="700">RO→RX 分壓 1.8k/3.3k</tspan>（5V→3.24V）；STM32(FT) <tspan font-weight="700">RO→RX 直接</tspan>。<tspan font-weight="700">TX→DI 一律直接</tspan>。</text>
+    <text x="46" y="808"><tspan font-weight="700" fill="#e03131">收發器</tspan>：每顆 13487 → <tspan fill="#e03131" font-weight="700">VCC 5V</tspan> · /RE→GND(常收) · /SHDN→5V；STM32 末端需插 USB-C(VBUS 5V)。</text>
+    <text x="46" y="834"><tspan font-weight="700">電阻 BOM</tspan>：120Ω ×10（5 bus × 2 端）、560Ω ×8（4 組偏壓）。<tspan font-size="11" fill="#868e96">單段電氣細節(分壓/A-B 終端/偏壓接法)見 hardware_1237.svg Panel②。</tspan></text>
+    <text x="46" y="864"><tspan font-weight="700" fill="#d6336c">13487 為何要偏壓</tspan>：AutoDirection 靠乾淨 idle 判收發方向，缺偏壓會間歇方向亂跳。正式版改 true fail-safe 件即免此 8 顆 560Ω。</text>
+  </g>
+</svg>
