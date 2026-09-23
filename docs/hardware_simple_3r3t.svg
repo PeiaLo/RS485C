@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 900" font-family="'Segoe UI','Microsoft JhengHei',sans-serif">
+  <rect x="0" y="0" width="1180" height="900" fill="#f8f9fa"/>
+  <text x="590" y="34" text-anchor="middle" font-size="22" font-weight="700" fill="#212529">RS485_C 接線概念圖 — 簡化版 3R3T</text>
+  <text x="590" y="56" text-anchor="middle" font-size="13" fill="#868e96">R1 下並掛 R2/R3/T1 · 中繼器=13487(AutoDir) · 末端=13485E(手動 DE/RE) · bus 38400</text>
+
+  <!-- 圖例 -->
+  <g font-size="12" fill="#495057">
+    <rect x="40" y="70" width="14" height="14" fill="#e03131"/><text x="60" y="82">5V</text>
+    <rect x="100" y="70" width="14" height="14" fill="#1971c2"/><text x="120" y="82">3.3V</text>
+    <rect x="175" y="70" width="14" height="14" fill="#2f9e44"/><text x="195" y="82">A/B bus</text>
+    <rect x="265" y="70" width="14" height="14" fill="#495057"/><text x="285" y="82">GND</text>
+    <rect x="325" y="70" width="14" height="14" fill="#f08c00"/><text x="345" y="82">終端/偏壓</text>
+    <rect x="420" y="70" width="14" height="14" fill="#fff" stroke="#e8590c" stroke-width="2"/><text x="440" y="82">中繼器 13487</text>
+    <rect x="530" y="70" width="14" height="14" fill="#fff" stroke="#2b8a3e" stroke-width="2"/><text x="550" y="82">末端 13485(DE=PB0)</text>
+  </g>
+
+  <!-- ===== Panel 1：系統樹 ===== -->
+  <text x="40" y="116" font-size="16" font-weight="700" fill="#212529">① 系統樹（bus1..4）· 位址與 path</text>
+
+  <!-- PC / dongle / R1 -->
+  <rect x="30" y="150" width="64" height="54" rx="6" fill="#e7f5ff" stroke="#1971c2"/>
+  <text x="62" y="174" text-anchor="middle" font-size="13" font-weight="700" fill="#1971c2">PC</text>
+  <text x="62" y="192" text-anchor="middle" font-size="11" fill="#495057">master</text>
+
+  <rect x="120" y="148" width="98" height="60" rx="6" fill="#fff" stroke="#343a40"/>
+  <text x="169" y="170" text-anchor="middle" font-size="11" font-weight="700">USB-485</text>
+  <text x="169" y="186" text-anchor="middle" font-size="11" fill="#495057">dongle</text>
+  <text x="169" y="200" text-anchor="middle" font-size="9" fill="#868e96">自帶偏壓</text>
+
+  <rect x="300" y="148" width="150" height="86" rx="6" fill="#fff" stroke="#e8590c" stroke-width="2"/>
+  <text x="375" y="170" text-anchor="middle" font-size="12" font-weight="700" fill="#e8590c">R1 · 中繼器</text>
+  <text x="375" y="187" text-anchor="middle" font-size="11">RP2040-Lite</text>
+  <text x="375" y="204" text-anchor="middle" font-size="11" font-weight="700">addr 1 → 1</text>
+  <text x="375" y="221" text-anchor="middle" font-size="10" fill="#495057">13487 AutoDir · VCC 5V</text>
+
+  <!-- bus1 / R1 -->
+  <line x1="94" y1="177" x2="120" y2="177" stroke="#868e96" stroke-width="2"/>
+  <line x1="218" y1="178" x2="300" y2="180" stroke="#2f9e44" stroke-width="3"/>
+  <text x="259" y="170" text-anchor="middle" font-size="11" font-weight="700" fill="#2b8a3e">bus1</text>
+  <text x="259" y="198" text-anchor="middle" font-size="9" fill="#868e96">dongle 偏壓</text>
+
+  <!-- R1.down → bus2 -->
+  <line x1="375" y1="234" x2="375" y2="300" stroke="#495057" stroke-width="2"/>
+
+  <!-- bus2 -->
+  <line x1="150" y1="300" x2="1030" y2="300" stroke="#2f9e44" stroke-width="4"/>
+  <text x="150" y="292" font-size="12" font-weight="700" fill="#2b8a3e">bus2 · multidrop（R2 + R3 + T1）</text>
+  <rect x="140" y="292" width="30" height="16" fill="#ffec99" stroke="#f08c00"/><text x="155" y="304" text-anchor="middle" font-size="9" font-weight="700" fill="#5c3d00">120Ω</text>
+  <rect x="1010" y="292" width="30" height="16" fill="#ffec99" stroke="#f08c00"/><text x="1025" y="304" text-anchor="middle" font-size="9" font-weight="700" fill="#5c3d00">120Ω</text>
+  <rect x="392" y="272" width="58" height="16" fill="#ffec99" stroke="#f08c00"/><text x="421" y="284" text-anchor="middle" font-size="9" font-weight="700" fill="#5c3d00">2×560Ω</text>
+  <text x="421" y="264" text-anchor="middle" font-size="9" fill="#e8590c" font-weight="700">偏壓@R1.down</text>
+
+  <!-- bus2 stubs -->
+  <g stroke="#2f9e44" stroke-width="2">
+    <line x1="250" y1="300" x2="250" y2="352"/>
+    <line x1="545" y1="300" x2="545" y2="352"/>
+    <line x1="855" y1="300" x2="855" y2="352"/>
+  </g>
+
+  <!-- R2 -->
+  <rect x="175" y="352" width="150" height="86" rx="6" fill="#fff" stroke="#e8590c" stroke-width="2"/>
+  <text x="250" y="374" text-anchor="middle" font-size="12" font-weight="700" fill="#e8590c">R2 · 中繼器</text>
+  <text x="250" y="391" text-anchor="middle" font-size="11">RP2040</text>
+  <text x="250" y="408" text-anchor="middle" font-size="11" font-weight="700">addr 2 → 1-2</text>
+  <text x="250" y="425" text-anchor="middle" font-size="10" fill="#495057">13487 · CHILDREN=[5]</text>
+
+  <!-- R3 -->
+  <rect x="470" y="352" width="150" height="86" rx="6" fill="#fff" stroke="#e8590c" stroke-width="2"/>
+  <text x="545" y="374" text-anchor="middle" font-size="12" font-weight="700" fill="#e8590c">R3 · 中繼器</text>
+  <text x="545" y="391" text-anchor="middle" font-size="11">RP2040</text>
+  <text x="545" y="408" text-anchor="middle" font-size="11" font-weight="700">addr 3 → 1-3</text>
+  <text x="545" y="425" text-anchor="middle" font-size="10" fill="#495057">13487 · CHILDREN=[6]</text>
+
+  <!-- T1 (末端直接掛 bus2) -->
+  <rect x="775" y="352" width="160" height="86" rx="6" fill="#fff" stroke="#2b8a3e" stroke-width="2"/>
+  <text x="855" y="374" text-anchor="middle" font-size="12" font-weight="700" fill="#2b8a3e">T1 · 末端</text>
+  <text x="855" y="391" text-anchor="middle" font-size="11">STM32 F411</text>
+  <text x="855" y="408" text-anchor="middle" font-size="11" font-weight="700">addr 4 → 1-4</text>
+  <text x="855" y="425" text-anchor="middle" font-size="10" fill="#2b8a3e">13485E · DE=PB0</text>
+
+  <!-- R2.down → bus3 -->
+  <line x1="250" y1="438" x2="250" y2="500" stroke="#495057" stroke-width="2"/>
+  <line x1="175" y1="500" x2="360" y2="500" stroke="#2f9e44" stroke-width="4"/>
+  <text x="175" y="492" font-size="11" font-weight="700" fill="#2b8a3e">bus3</text>
+  <rect x="168" y="492" width="26" height="15" fill="#ffec99" stroke="#f08c00"/><text x="181" y="504" text-anchor="middle" font-size="8" font-weight="700" fill="#5c3d00">120</text>
+  <rect x="342" y="492" width="26" height="15" fill="#ffec99" stroke="#f08c00"/><text x="355" y="504" text-anchor="middle" font-size="8" font-weight="700" fill="#5c3d00">120</text>
+  <text x="300" y="492" font-size="8.5" fill="#e8590c" font-weight="700">偏壓@R2</text>
+  <line x1="250" y1="500" x2="250" y2="545" stroke="#2f9e44" stroke-width="2"/>
+
+  <!-- T2 -->
+  <rect x="175" y="545" width="150" height="80" rx="6" fill="#fff" stroke="#2b8a3e" stroke-width="2"/>
+  <text x="250" y="567" text-anchor="middle" font-size="12" font-weight="700" fill="#2b8a3e">T2 · 末端</text>
+  <text x="250" y="584" text-anchor="middle" font-size="11">STM32 F411</text>
+  <text x="250" y="601" text-anchor="middle" font-size="11" font-weight="700">addr 5 → 1-2-5</text>
+  <text x="250" y="617" text-anchor="middle" font-size="10" fill="#2b8a3e">13485E · DE=PB0</text>
+
+  <!-- R3.down → bus4 -->
+  <line x1="545" y1="438" x2="545" y2="500" stroke="#495057" stroke-width="2"/>
+  <line x1="470" y1="500" x2="655" y2="500" stroke="#2f9e44" stroke-width="4"/>
+  <text x="470" y="492" font-size="11" font-weight="700" fill="#2b8a3e">bus4</text>
+  <rect x="463" y="492" width="26" height="15" fill="#ffec99" stroke="#f08c00"/><text x="476" y="504" text-anchor="middle" font-size="8" font-weight="700" fill="#5c3d00">120</text>
+  <rect x="637" y="492" width="26" height="15" fill="#ffec99" stroke="#f08c00"/><text x="650" y="504" text-anchor="middle" font-size="8" font-weight="700" fill="#5c3d00">120</text>
+  <text x="595" y="492" font-size="8.5" fill="#e8590c" font-weight="700">偏壓@R3</text>
+  <line x1="545" y1="500" x2="545" y2="545" stroke="#2f9e44" stroke-width="2"/>
+
+  <!-- T3 -->
+  <rect x="470" y="545" width="150" height="80" rx="6" fill="#fff" stroke="#2b8a3e" stroke-width="2"/>
+  <text x="545" y="567" text-anchor="middle" font-size="12" font-weight="700" fill="#2b8a3e">T3 · 末端</text>
+  <text x="545" y="584" text-anchor="middle" font-size="11">STM32 F411</text>
+  <text x="545" y="601" text-anchor="middle" font-size="11" font-weight="700">addr 6 → 1-3-6</text>
+  <text x="545" y="617" text-anchor="middle" font-size="10" fill="#2b8a3e">13485E · DE=PB0</text>
+
+  <!-- 位址說明 -->
+  <text x="720" y="560" font-size="12" fill="#495057">葉位址全樹唯一：<tspan font-weight="700" fill="#212529">T1=4 / T2=5 / T3=6</tspan></text>
+  <text x="720" y="582" font-size="12" fill="#495057">CHILDREN＝子樹全葉：R1=[4,5,6]、R2=[5]、R3=[6]</text>
+  <text x="720" y="604" font-size="12" fill="#495057">PC REQ|ALL → <tspan font-weight="700" fill="#2b8a3e">1-4 / 1-2-5 / 1-3-6</tspan></text>
+
+  <!-- ===== Panel 2：接線規則 ===== -->
+  <text x="40" y="666" font-size="16" font-weight="700" fill="#212529">② 每節點接線 + 燒錄連線</text>
+  <rect x="30" y="680" width="1120" height="192" rx="6" fill="#fff" stroke="#dee2e6"/>
+  <g font-size="12.5" fill="#343a40">
+    <text x="46" y="706"><tspan font-weight="700" fill="#e03131">供電</tspan>：每顆收發器 <tspan fill="#e03131" font-weight="700">VCC=5V(VBUS)</tspan>、全系統共地(GND)。STM32 末端要插 USB-C(VBUS 5V) 才餵得動收發器。</text>
+    <text x="46" y="730"><tspan font-weight="700" fill="#e8590c">中繼器 13487(AutoDir)</tspan>：TX→DI 直接；<tspan font-weight="700">RO→RX 經分壓 1.8k/3.3k</tspan>(RP2040 非5V容忍)；/RE→GND、/SHDN→5V。up=UART1(GP4/5)、down=UART0(GP0/1)。</text>
+    <text x="46" y="754"><tspan font-weight="700" fill="#2b8a3e">末端 13485E(手動)</tspan>：TX(PA9)→DI；RO→RX(PA10) 直接(FT 腳)；<tspan font-weight="700">DE+/RE 綁 PB0</tspan>(高=發送/低=收，韌體 MANUAL_DIR=1)；true fail-safe 免偏壓。</text>
+    <text x="46" y="778"><tspan font-weight="700" fill="#f08c00">終端/偏壓</tspan>：每條 bus 兩端 120Ω；有 13487 的 bus 各一組偏壓 2×560Ω(放下行 master：bus2@R1、bus3@R2、bus4@R3)；bus1 dongle 自帶。</text>
+    <text x="46" y="806"><tspan font-weight="700" fill="#1971c2">串接口訣</tspan>：一台的 down 接下一台的 up（A↔A、B↔B、GND↔GND）；USB-485 因標示相反 A/B 對調。</text>
+    <text x="46" y="836"><tspan font-weight="700">燒錄（逐台、走各板自己的 USB，不經 bus）</tspan>：<tspan fill="#e8590c" font-weight="700">RP2040</tspan> BOOTSEL→UF2→Thonny 傳 main.py+protocol.py(改 MY_ADDR/CHILDREN)；<tspan fill="#2b8a3e" font-weight="700">STM32</tspan> BT0 短 3V3+RST 進 DFU→Arduino 上傳(改 FIXED_ADDR、MANUAL_DIR=1)。</text>
+    <text x="46" y="860" font-size="11" fill="#868e96">先各自燒好、USB 印出 addr 正確，再照 Panel① 接 RS485 bus。</text>
+  </g>
+</svg>
