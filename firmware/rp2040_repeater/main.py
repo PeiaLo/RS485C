@@ -17,22 +17,43 @@
 #   之後若換 MAX13485（手動 DE/RE），在 up.write()/down.write() 前後補「拉DE→寫→等排空→放DE」
 #   即可（見檔尾註解），其餘邏輯不動。
 #
-# 需與 lib/protocol.py 一起上傳到板子（跟 main.py 同層）。baud 必須跟末端一致（38400）。
+# 需與 lib/protocol.py 一起上傳到板子（跟 main.py 同層）。baud 必須跟末端一致（115200）。
 
 import time
 from machine import UART, Pin
 import protocol as P
 
 # ========================= 每片板子改這裡 =========================
-MY_ADDR  = 1            # 這條鏈：R1=1、R2=2、R3=3（燒每片前只改這一個數字）
-CHILDREN = [7]          # 這條鏈三台都是 [7]（底下唯一葉子是 T7=addr7）
-BAUD     = 38400
+MY_ADDR  = 1            # 本測 3R3T：R1=1、R2=2、R3=3（燒每片前改這個數字）
+CHILDREN = [4, 5, 6]    # R1=子樹全葉 [4,5,6]；燒 R2 改 [5]、R3 改 [6]（扁平葉位址模型）
+BAUD     = 115200
+# 收發器方向：False=MAX13487(AutoDir，proven 板用)；True=MAX13485E(手動 DE/RE，新架構 R4 用)
+# 手動時 DE 腳：down=GP2、up=GP3（高=發送/低=接收；DE+/RE 綁同腳）
+MANUAL_DIR = False
 # ================================================================
 
 POLL_TIMEOUT_MS = 200
 
 down = UART(0, baudrate=BAUD, tx=Pin(0), rx=Pin(1), timeout=0, timeout_char=2)  # 下層
 up   = UART(1, baudrate=BAUD, tx=Pin(4), rx=Pin(5), timeout=0, timeout_char=2)  # 上層
+
+# 13485 手動方向：預設低=收；13487 時為 None，_tx 直接 write（行為不變）
+if MANUAL_DIR:
+    de_down = Pin(2, Pin.OUT, value=0)   # 下層 DE，低=收
+    de_up   = Pin(3, Pin.OUT, value=0)   # 上層 DE，低=收
+else:
+    de_down = de_up = None
+
+
+def _tx(uart, de, s):
+    """半雙工送出。手動方向(13485)：拉高→寫→等排空→放低；AutoDir(13487)：直接寫。"""
+    if de is None:
+        uart.write(s)
+        return
+    de.value(1)                                        # 高=發送
+    uart.write(s)
+    time.sleep_us(len(s) * 10_000_000 // BAUD + 100)   # 等 TX 排空(每 byte≈10 bit)，早放會截尾
+    de.value(0)                                        # 低=回到接收
 
 # cache: addr -> {"path","json","ts","fresh","valid"}
 cache = {}
@@ -62,7 +83,7 @@ def serve_slot(a):
         age = time.ticks_diff(time.ticks_ms(), e["ts"])
         if j.endswith("}"):
             j = j[:-1] + ',"age":%d}' % age
-        up.write("%s|%s\r" % (e["path"], j))
+        _tx(up, de_up, "%s|%s\r" % (e["path"], j))
 
 
 def serve_upstream():
@@ -93,7 +114,7 @@ def poll_child(a):
     """對某孩子發 REQ、收一筆完整框、前綴自己的位址存 cache。逾時保留舊值標 stale。"""
     global down_rx, frames, last_frame
     down.read()                         # flush 殘留
-    down.write("REQ|%d\r" % a)
+    _tx(down, de_down, "REQ|%d\r" % a)
     dec = P.FrameDecoder()
     t0 = time.ticks_ms()
     while time.ticks_diff(time.ticks_ms(), t0) < POLL_TIMEOUT_MS:
@@ -147,13 +168,5 @@ while True:
               % (up_rx, down_rx, frames, last_frame, _cache0_status()))
 
 
-# ── 之後換 MAX13485（手動 DE/RE）時：────────────────────────────
-# from machine import Pin
-# de_down = Pin(2, Pin.OUT, value=0)   # 下層 DE，預設低=收
-# de_up   = Pin(3, Pin.OUT, value=0)   # 上層 DE，預設低=收
-# def _send(uart, de, s):
-#     de.value(1)
-#     uart.write(s)
-#     time.sleep_us(len(s) * 10_000_000 // BAUD + 100)  # 等排空(每byte≈10bit)
-#     de.value(0)
-# 把 up.write(...) / down.write(...) 換成 _send(up, de_up, ...) / _send(down, de_down, ...)
+# ── MAX13485（手動 DE/RE）已支援：把上面 MANUAL_DIR 設 True 即可（DE：down=GP2、up=GP3）。
+#    送出走 _tx()，會自動「拉高→寫→等排空→放低」；13487 時 MANUAL_DIR=False 行為不變。

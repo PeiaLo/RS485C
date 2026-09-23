@@ -20,12 +20,17 @@
 HardwareSerial SerialBus(PA10 /*RX1*/, PA9 /*TX1*/);
 #define BUS       SerialBus
 #define DBG       Serial   // USB CDC（COM16 除錯）
-#define BUS_BAUD  38400   // bus baud（降速；所有節點+探針要一致）。VCP除錯仍115200
+#define BUS_BAUD  115200   // bus baud（降速；所有節點+探針要一致）。VCP除錯仍115200
 #define REQ_TIMEOUT_MS 300
 #define WDG_TIMEOUT_US 4000000    // 4 秒沒 reload 就重置
 
 #define USE_DIP    0
-#define FIXED_ADDR 7   // 深鏈 1-2-3-7 的末端 T7；其他末端燒前改這一個數字
+#define FIXED_ADDR 6   // 本測 3R3T：T1=4、T2=5、T3=6（燒每片前改這一個數字）
+
+// 收發器方向控制：0=MAX13487(AutoDirection，免控向，proven 板用)
+//                1=MAX13485E(手動 DE/RE，新架構末端用)。DE+/RE 綁同一腳，高=發送/低=接收。
+#define MANUAL_DIR 1   // 本測末端接 13485E → 手動 DE/RE
+#define DE_PIN     PB0   // 13485 方向腳（避開 PA9/10=bus、PA11/12=USB、PA13/14=SWD、DIP 腳）
 
 #if USE_DIP
 // 指撥腳（依你的板改）。⚠️ F401CC 是 48 腳封裝，沒有 PC0~PC12（只有 PC13~15），
@@ -48,10 +53,11 @@ void detectResetCause() {
   uint32_t csr = RCC->CSR;
   if      (csr & RCC_CSR_IWDGRSTF) strcpy(gRst, "iwdg");
   else if (csr & RCC_CSR_WWDGRSTF) strcpy(gRst, "wwdg");
+  // ⚠️ F4 正常上電會同時設 POR+BOR 旗標 → 先判 POR，否則每次上電都被貼成 bor。
+  else if (csr & RCC_CSR_PORRSTF)  strcpy(gRst, "por");
 #ifdef RCC_CSR_BORRSTF
   else if (csr & RCC_CSR_BORRSTF)  strcpy(gRst, "bor");
 #endif
-  else if (csr & RCC_CSR_PORRSTF)  strcpy(gRst, "por");
   else if (csr & RCC_CSR_SFTRSTF)  strcpy(gRst, "sft");
   else if (csr & RCC_CSR_PINRSTF)  strcpy(gRst, "pin");
   else                             strcpy(gRst, "?");
@@ -74,12 +80,16 @@ void readDip() {
 
 void setup() {
   detectResetCause();                      // ⚠️ 最先做：趁旗標還在（IWDG begin 前）
-  pinMode(LED_BUILTIN, OUTPUT);            // 板載 LED(PC13) 當心跳，肉眼確認活著
+  pinMode(PC13, OUTPUT);            // 板載 LED(PC13) 當心跳，肉眼確認活著
   DBG.begin(115200);
   // STM32 USB CDC：等電腦把序列埠打開再印，否則開機訊息會在 USB 列舉前被丟掉（最多等 5 秒）
   unsigned long _t = millis();
   while (!DBG && millis() - _t < 5000) { }
   BUS.begin(BUS_BAUD);
+#if MANUAL_DIR
+  pinMode(DE_PIN, OUTPUT);
+  digitalWrite(DE_PIN, LOW);   // 13485：預設低=接收
+#endif
 #if USE_DIP
   readDip();
 #else
@@ -120,7 +130,7 @@ void loop() {
   // 心跳：LED 每 250ms 翻一次，肉眼即可確認板子在跑（與序列埠無關）
   static bool led = false;
   static unsigned long led_t = 0, beat_t = 0;
-  if (millis() - led_t > 250) { led_t = millis(); led = !led; digitalWrite(LED_BUILTIN, led); }
+  if (millis() - led_t > 250) { led_t = millis(); led = !led; digitalWrite(PC13, led); }
   // COM9 診斷：每秒印一次心跳 + 顯示從 bus 收到幾個 byte（rxBytes 有沒有在漲＝有沒有收到東西）
   if (millis() - beat_t > 1000) {
     beat_t = millis();
@@ -154,7 +164,14 @@ void loop() {
   int n = rs485c::encode(addr, json, true /*final→\r*/, frame, sizeof(frame));
   if (n < 0) { DBG.println("[terminal] encode overflow"); return; }
 
+#if MANUAL_DIR
+  digitalWrite(DE_PIN, HIGH);   // 13485：拉高=發送
   BUS.write((const uint8_t*)frame, n);
+  BUS.flush();                  // 等 TX 完成(TC)再放腳，早放會截掉尾 byte
+  digitalWrite(DE_PIN, LOW);    // 放低=回到接收
+#else
+  BUS.write((const uint8_t*)frame, n);
+#endif
   DBG.print("[terminal] replied: ");
   DBG.print(addr); DBG.print('|'); DBG.println(json);
 }
