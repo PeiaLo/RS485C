@@ -42,9 +42,19 @@ static int _uint_to_dec(unsigned long v, char* out) {
 // ====================================================================
 // CRC（保留）
 // ====================================================================
+// CRC-16/MODBUS：poly 0xA001(reflected)、init 0xFFFF、不反轉輸出。
+// ⚠️ 與 protocol.py 的 crc16() 逐位一致（test_vectors.json 對齊）。標準檢查值 "123456789"→0x4B37。
+// 位元運算版（無查表）→ 省 flash、AVR 也能跑；供 0xFE 私有幀與 MODBUS RTU 共用。
 uint16_t crc16(const uint8_t* data, int len) {
-  (void)data; (void)len;
-  return 0;   // TODO: 啟用 CRC 時實作（需與 protocol.py 一致）
+  uint16_t crc = 0xFFFF;
+  for (int i = 0; i < len; i++) {
+    crc ^= (uint16_t)data[i];
+    for (int k = 0; k < 8; k++) {
+      if (crc & 1) crc = (uint16_t)((crc >> 1) ^ 0xA001);
+      else         crc = (uint16_t)(crc >> 1);
+    }
+  }
+  return crc;
 }
 
 

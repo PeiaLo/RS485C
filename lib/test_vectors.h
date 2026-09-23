@@ -10,6 +10,19 @@ struct IntV { const char* path; int expect; };
 struct EncV { const char* addr; const char* json; bool final; const char* expect; };
 struct DecRec { const char* payload; bool final; };
 struct DecV { const char* stream; const DecRec* recs; int nrecs; };
+struct Crc16V { const unsigned char* bytes; int len; unsigned int expect; };
+
+static const unsigned char CRC16_0_BYTES[] = {49, 50, 51, 52, 53, 54, 55, 56, 57};
+static const unsigned char CRC16_1_BYTES[] = {0};
+static const unsigned char CRC16_2_BYTES[] = {49, 45, 50, 45, 51, 45, 55, 124, 50, 53, 46, 49, 44, 51, 46, 50, 44, 49, 48, 49, 51};
+static const unsigned char CRC16_3_BYTES[] = {52, 124, 123, 34, 116, 34, 58, 34, 84, 77, 80, 34, 44, 34, 118, 34, 58, 50, 54, 46, 55, 125};
+static const Crc16V CRC16_VECS[] = {
+  {CRC16_0_BYTES, 9, 19255u},
+  {CRC16_1_BYTES, 0, 65535u},
+  {CRC16_2_BYTES, 21, 3907u},
+  {CRC16_3_BYTES, 22, 38860u},
+};
+static const int CRC16_N = 4;
 
 static const KV3 BUILD_PAYLOAD_VECS[] = {
   {"4", "{\"t\":\"TMP\",\"v\":26.7,\"u\":\"C\",\"ok\":1}", "4|{\"t\":\"TMP\",\"v\":26.7,\"u\":\"C\",\"ok\":1}"},

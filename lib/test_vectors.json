@@ -1,6 +1,12 @@
 {
   "version": 1,
-  "note": "RS485_C 協定庫跨語言測試向量（唯一真相來源）。protocol.py 直接讀本檔驗證；protocol.cpp 透過 test_protocol.py 產生的 test_vectors.h 驗證。CRC 停用，故不含 CRC 案例。字串中的 \\n=0x0A(CONT)、\\r=0x0D(END)。",
+  "note": "RS485_C 協定庫跨語言測試向量（唯一真相來源）。protocol.py 直接讀本檔驗證；protocol.cpp 透過 test_protocol.py 產生的 test_vectors.h 驗證。crc16=CRC-16/MODBUS(已實作，供 0xFE 私有幀與 MODBUS RTU)；build/parse 的 *<crc> 整合仍以 CRC_ENABLED 控制、預設停用。字串中的 \\n=0x0A(CONT)、\\r=0x0D(END)。",
+  "crc16": [
+    { "bytes": [49, 50, 51, 52, 53, 54, 55, 56, 57], "expect": 19255 },
+    { "bytes": [], "expect": 65535 },
+    { "bytes": [49, 45, 50, 45, 51, 45, 55, 124, 50, 53, 46, 49, 44, 51, 46, 50, 44, 49, 48, 49, 51], "expect": 3907 },
+    { "bytes": [52, 124, 123, 34, 116, 34, 58, 34, 84, 77, 80, 34, 44, 34, 118, 34, 58, 50, 54, 46, 55, 125], "expect": 38860 }
+  ],
   "build_payload": [
     { "addr": "4", "json": "{\"t\":\"TMP\",\"v\":26.7,\"u\":\"C\",\"ok\":1}", "expect": "4|{\"t\":\"TMP\",\"v\":26.7,\"u\":\"C\",\"ok\":1}" },
     { "addr": "1-32-4", "json": "{\"v\":1}", "expect": "1-32-4|{\"v\":1}" },

@@ -42,6 +42,9 @@ class Runner:
             print("  FAIL {}\n       got : {!r}\n       want: {!r}".format(name, got, want))
 
     def run(self, v):
+        for i, c in enumerate(v.get("crc16", [])):
+            self.check("crc16[{}]".format(i), P.crc16(bytes(c["bytes"])), c["expect"])
+
         for i, c in enumerate(v["build_payload"]):
             self.check("build_payload[{}]".format(i),
                        P.build_payload(c["addr"], c["json"]), c["expect"])
@@ -130,6 +133,19 @@ def gen_header(v):
     L.append("struct EncV { const char* addr; const char* json; bool final; const char* expect; };")
     L.append("struct DecRec { const char* payload; bool final; };")
     L.append("struct DecV { const char* stream; const DecRec* recs; int nrecs; };")
+    L.append("struct Crc16V { const unsigned char* bytes; int len; unsigned int expect; };")
+    L.append("")
+
+    # crc16 (nested byte arrays; 空陣列以 {0} + len 0 佔位避免零長陣列)
+    for i, c in enumerate(v.get("crc16", [])):
+        b = c["bytes"]
+        arr = ", ".join(str(x) for x in b) if b else "0"
+        L.append("static const unsigned char CRC16_%d_BYTES[] = {%s};" % (i, arr))
+    L.append("static const Crc16V CRC16_VECS[] = {")
+    for i, c in enumerate(v.get("crc16", [])):
+        L.append("  {CRC16_%d_BYTES, %d, %du}," % (i, len(c["bytes"]), c["expect"]))
+    L.append("};")
+    L.append("static const int CRC16_N = %d;" % len(v.get("crc16", [])))
     L.append("")
 
     # build_payload: KV3 = (addr, json, expect)

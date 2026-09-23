@@ -44,9 +44,20 @@ CRC_ENABLED = False
 # CRC（保留接口）
 # ====================================================================
 def crc16(data):
-    """CRC-16 保留接口。CRC_ENABLED=True 時才需實作（兩語言演算法需一致）。
-    目前未使用。"""
-    raise NotImplementedError("CRC reserved; not enabled (see docs/06 B3)")
+    """CRC-16/MODBUS：poly 0xA001(reflected)、init 0xFFFF、不反轉輸出。
+    `data` 為 bytes/bytearray 或可迭代的 byte 值(0..255)。回傳 0..0xFFFF。
+    ⚠️ 與 protocol.cpp 的 crc16() 演算法必須逐位一致（以 test_vectors.json 對齊）。
+    標準檢查值：crc16(b"123456789") == 0x4B37。
+    edge 走原生 MODBUS RTU CRC、core 0xFE 私有幀 *<crc>\\r 都用這顆。"""
+    crc = 0xFFFF
+    for b in data:
+        crc ^= (b & 0xFF)
+        for _ in range(8):
+            if crc & 1:
+                crc = (crc >> 1) ^ 0xA001
+            else:
+                crc >>= 1
+    return crc & 0xFFFF
 
 
 def _crc_hex(v):

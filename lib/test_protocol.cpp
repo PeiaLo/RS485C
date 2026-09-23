@@ -43,6 +43,13 @@ int main() {
   char json[256];
   long crc;
 
+  // crc16 (CRC-16/MODBUS，與 protocol.py 對齊)
+  for (int i = 0; i < CRC16_N; i++) {
+    const Crc16V& c = CRC16_VECS[i];
+    char name[48]; snprintf(name, sizeof(name), "crc16[%d]", i);
+    ck_int(name, (long)crc16(c.bytes, c.len), (long)c.expect);
+  }
+
   // build_payload
   for (int i = 0; i < BUILD_PAYLOAD_N; i++) {
     const KV3& c = BUILD_PAYLOAD_VECS[i];   // a=addr b=json c=expect
