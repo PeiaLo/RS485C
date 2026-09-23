@@ -111,7 +111,7 @@ node descriptor
 └ peripherals[]
     ├ id            外設 local id（descriptor 索引 0,1,2…；非 path 段）
     ├ type          TC-K / PRS-420 / LOADCELL / FLOW / PID / AI-xxx …
-    ├ binding       本地採集：adc(PA0) / spi(max31855) / i2c / pulse(gpio)
+    ├ binding       本地採集：adc-電壓(PA0) / adc-4~20mA(取樣電阻) / spi(max31855) / i2s / i2c / pulse(gpio)
     │               外部 MODBUS：modbus{regtype/addr/fc/dtype/word_order/scale}
     │               邏輯塊：in=<外設id> / out=<外設id> / model=…
     ├ driver        對應 type 的實作（見 §7）
@@ -152,7 +152,7 @@ node descriptor
 
 | 類 | 例 | binding | REQ 回 | SET 寫 |
 |---|---|---|---|---|
-| 物理感測（本地） | 熱電偶/壓力/流量/重量 | adc/spi/i2c/pulse | 量測值 | — |
+| 物理感測（本地） | 熱電偶/壓力/流量/重量/類比訊號 | adc(電壓/4~20mA)/spi/i2s/i2c/pulse | 量測值 | — |
 | 物理驅動（本地） | 繼電器/PWM | gpio/pwm | 輸出狀態 | 開關/類比值 |
 | **外部 MODBUS 外設** | PLC 感測/驅動模組 | **modbus**（末端=master@115200，見 §6.1） | 讀值（照 descriptor 還原） | 寫 coil/holding reg |
 | 邏輯·PID | 閉環控制 | in=感測外設, out=驅動外設 | sp/pv/out/mode | setpoint、Kp/Ki/Kd |
@@ -161,7 +161,21 @@ node descriptor
 ### 7.2 type → Driver 登錄表
 
 - `driver = 採集(binding) + 換算(raw→工程值)`。加新感測器 = **加一個 driver + 一筆 descriptor entry**，框架/協定不動。
-- **採集介面不限 ADC**：熱電偶常用 MAX31855(SPI) 或 ADC+冷端補償、荷重元用 HX711、流量用脈衝計數(GPIO 中斷)、4–20mA 壓力→ADC。
+- **末端內建一批通用 driver 庫（我們自行維護、預存於韌體）**，按「讀取訊號格式」分類，descriptor 只負責挑「用哪支 driver + 參數」：
+
+  | 訊號格式 | binding | 典型件/備註 |
+  |---|---|---|
+  | 電壓（類比） | `adc-電壓` | 直接 ADC；分壓/緩衝依量程 |
+  | 4~20mA 電流環 | `adc-4~20mA` | 取樣電阻→ADC，線性換算；**<4mA=斷線偵測** |
+  | SPI | `spi` | 熱電偶 MAX31855、外部 ADC/DAC |
+  | I2S | `i2s` | 數位麥克風/音訊/振動感測 |
+  | I2C | `i2c` | 擴充 ADS1115/PCA9685/MCP23017 湊通道 |
+  | 脈衝/計數 | `pulse` | 流量計、編碼器（GPIO 中斷）|
+  | 荷重元 | 專用 | HX711（自帶時序）|
+  | 外部 MODBUS | `modbus` | 末端=master@115200，見 §6.1 |
+
+  > **後段接什麼，由我們在 descriptor 指定，不靠 bus 自動探索**——對照 [02](02_通訊協定.md)「下層探索」：bus 端（子中繼器/末端）自動探索，**末端↔後段外設端則是預存 driver + 人工 descriptor**。
+  > **4~20mA 與電壓同落 ADC 腳，但屬不同 driver**（電流環要取樣電阻、線性換算與斷線偵測），descriptor 明確二選一。
 - **介面預留狀態機 hooks**：`init() / start() / ready() / read() / status()`。簡單感測器只實作 `read()`；狀態機型（DS18B20「啟動轉換→等→讀」、荷重元 tare）**日後補、不改框架**。
 - **換算只做一次**：driver 出 **raw**；工程換算讀 descriptor 的 `calibration` 套一次（不在 driver 又套一遍）。
 - **unknown type**：標 `unsupported`，不 crash，之後補 driver。
