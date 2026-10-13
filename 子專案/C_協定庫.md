@@ -9,6 +9,7 @@
 - **要做（第一 byte 判別）**：讀入首 byte → `1-63`/`0xFF`=MODBUS、`0xFE`=私有，分派對應解析器。
 - **要做（私有格式）**：`\n` 續/`\r` 完整框架、`<path>|<payload>` 組裝/解析（payload 透明：CSV 值 / JSON）、`*<crc16>` **`\r` 前驗**、位址字串操作（前綴、切段、驗證 1–63，**path 到節點**）、跨語言測試向量。
 - **要做（MODBUS RTU）**：組/解 MODBUS 幀（addr/FC/data/CRC16-LH）、FC03/04/06/16 helper、廣播 `0xFF`。給末端(slave)、中繼器葉段(master) 共用。
+- **要做（自動定址枚舉）**：`enumerate` 請求/回應框架 + 本地位址指派 helper（master 配序號、slave 回應）；配合 `ENUM` 腳時序（硬體腳在 A/B，協定庫只管訊息）。見 [10 §8](../docs/10_自動終端與拓樸.md)。
 - **要做**：**CRC-16/MODBUS**——`crc16()`、`CRC_ENABLED=True`、`test_vectors.json` 對齊 C++/Python（私有與 MODBUS 同一 CRC 多項式）。
 - **不做**：任何感測器/UART/硬體邏輯（那是 A/B）。
 

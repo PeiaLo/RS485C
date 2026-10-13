@@ -10,7 +10,8 @@
 ## 範圍
 - **要做（葉段）**：down 當 **MODBUS master** 輪詢末端（FC03/04 讀整塊暫存器）→ 照 descriptor 還原 → **轉成私有格式 `0xFE`**、前綴本地位址、存 cache。
 - **要做（骨幹）**：up/down 皆私有格式；round-robin、cache dict+新鮮度、逾時跳過、前綴拼路徑、上層優先回 cache；子中繼器來的私有 payload **純轉發**（CRC 逐跳重算、age/健康 envelope 放框架外，見 [docs/09](../docs/09_軟體架構定案.md)）。
-- **要做**：載入型錄(catalog)供 hot-swap；`up_baud ≠ down_baud`（葉段 MODBUS 慢、骨幹私有快）。
+- **要做（自動定址 master）**：對下層當**枚舉 master**——廣播 `enumerate`、依 `ENUM` 鏈序逐台配本地位址（1,2,3…）、換板重枚舉復位；本地 path = 父層 path + 子鏈序（見 [10 §8](../docs/10_自動終端與拓樸.md)、[03](../docs/03_定址與指撥開關.md)）。DIP 已拿掉。
+- **要做**：載入型錄(catalog)供 hot-swap（位址自動 + 型錄 descriptor 給身分 → 換同款即自動配置）；`up_baud ≠ down_baud`（葉段 MODBUS 慢、骨幹私有快）。
 - **先不做**：Ethernet 傳輸（那是 F）、輸出 `SET` 下行（第二版）。
 
 ## 依賴契約
