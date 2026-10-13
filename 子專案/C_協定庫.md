@@ -10,7 +10,7 @@
 - **要做（私有格式）**：`\n` 續/`\r` 完整框架、`<path>|<payload>` 組裝/解析（payload 透明：CSV 值 / JSON）、`*<crc16>` **`\r` 前驗**、位址字串操作（前綴、切段、驗證 1–63，**path 到節點**）、跨語言測試向量。
 - **要做（MODBUS RTU）**：組/解 MODBUS 幀（addr/FC/data/CRC16-LH）、FC03/04/06/16 helper、廣播 `0xFF`。給末端(slave)、中繼器葉段(master) 共用。
 - **要做（自動定址枚舉）**：`enumerate` 請求/回應框架 + 本地位址指派 helper（master 配序號、slave 回應）；配合 `ENUM` 腳時序（硬體腳在 A/B，協定庫只管訊息）。見 [10 §8](../docs/10_自動終端與拓樸.md)。
-- **要做**：**CRC-16/MODBUS**——`crc16()`、`CRC_ENABLED=True`、`test_vectors.json` 對齊 C++/Python（私有與 MODBUS 同一 CRC 多項式）。
+- **要做（CRC 可選）**：**預留** `*<crc>` 槽與 `crc16()`，但 **`CRC_ENABLED` 預設 False**（初期不設、先跑通；後可加、不影響硬體）。開時 CRC-16/MODBUS、`test_vectors.json` 對齊 C++/Python（私有與 MODBUS 同多項式）。`feat/modbus` 已有實作可併入。
 - **不做**：任何感測器/UART/硬體邏輯（那是 A/B）。
 
 ## 依賴契約
@@ -42,6 +42,6 @@ Repo：https://github.com/PeiaLo/RS485C（本機 C:\Users\apial\Desktop\RS485_C�
 先讀：README.md、docs/02_通訊協定.md §3.1、docs/09_軟體架構定案.md、docs/03_定址與指撥開關.md、
      子專案/C_協定庫.md、lib/protocol.py、lib/protocol.h/.cpp（現有版）。
 任務：完善 lib/protocol.py 與 lib/protocol.h/.cpp——第一 byte 判別、私有格式(0xFE <path>|<payload>*<crc>\r)、
-     MODBUS RTU 幀(addr/FC/data/CRC16)、啟用 CRC-16/MODBUS(crc16()、CRC_ENABLED=True)、lib/test_vectors.json 跨語言向量。
+     MODBUS RTU 幀(addr/FC/data/CRC16)、CRC 可選(crc16()+*<crc>槽預留、CRC_ENABLED 預設 False)、lib/test_vectors.json 跨語言向量。
 這是共用契約，其他模組都依賴它——介面定版前先跟我確認。完成後 commit + push。
 ```

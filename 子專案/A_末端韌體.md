@@ -11,7 +11,7 @@
 - **要做（對上=MODBUS slave）**：**自動定址**（ENUM 鏈序，取代指撥；`ENUM_IN`/`ENUM_OUT` + 枚舉協定，見 [10 §8](../docs/10_自動終端與拓樸.md)）、把**本地 cache 的外設值/健康以 MODBUS 暫存器呈現**給中繼器輪詢（暫存器佈局見 [08 §6.2](../docs/08_末端外設_Driver_韌性架構.md)）；`SET` 走保持暫存器/coil；進階模式走軟體指令 `CFG`。
 - **要做（對下=MODBUS master@115200）**：依 descriptor 的 `binding.modbus`（regtype/addr/fc/dtype/word_order/scale）讀外部 PLC 外設，raw→工程值後放進**本地 cache**（見 [08 §6.1](../docs/08_末端外設_Driver_韌性架構.md)）。
 - **要做**：driver 登錄表=函式指標（本地感測外設，見 [docs/09 §4](../docs/09_軟體架構定案.md)）、健康 envelope(ok/up/rst)、DESC/JSON（首次自描述 + 10s 心跳）走 `0xFE` 私有 frame、進階模式（功能位 OFF）接受 `CFG` 寫入骨架。
-- **要做**：CRC-16/MODBUS（MODBUS 原生 CRC；私有 frame 呼叫模組 C 的 `crc16()`）。
+- **CRC 可選**：對真實外部 MODBUS 設備用 MODBUS 原生 CRC（driver 必須）；私有 frame 的 CRC **初期不設**（`CRC_ENABLED=False`、`*<crc>` 槽預留，後可加）。
 - **先不做**：輸出設備的 `SET` 進階邏輯（第二版）。
 - **不做**：樹狀輪詢/前綴拼路徑（那是中繼器 B 的事）；**外設不進樹狀定址**（末端自己 cache + descriptor 索引）。
 
