@@ -24,7 +24,7 @@
 | 角色 | 平台 | 語言 | UART | 備註 |
 |---|---|---|---|---|
 | 中繼器 | **RP2040** | MicroPython | 雙（up=私有 slave、down=葉段 **MODBUS master** 對末端） | up/down 各一顆 MAX |
-| 末端 | **STM32**（FT 5V 容忍） | C++ | 雙（up=**MODBUS slave** 對中繼器、down=**MODBUS master@115200** 對外部外設） | 可跑 PID/AI；外設值進 cache |
+| 末端 | **STM32**（FT 5V 容忍） | C++ | 雙（up=**吐核心文字(JSON)** 給中繼器、down=**MODBUS master@115200** 對外部外設） | 可跑 PID/AI；外設值進 cache |
 | 上位機(D) | PC | Python | — | rs485_monitor / rs485_probe |
 
 ### 3.1 末端 MCU 分級（2026-09-09）
@@ -79,17 +79,17 @@
 - **path 只到 node**（不再是 `1-2-3-7-1`）。**外設不進樹狀定址**——由 node MCU 抓值（外部外設走 MODBUS@115200）放進本地 cache，靠 **descriptor 索引**組織。要某外設值＝向該 **node** `REQ`，由它從 cache 提供（descriptor 定順序）。
 - **位址 = 位置（where，到 node）**；**descriptor = 定義（what，含外設清單與抓取方式）**。
 - 樹狀 + 前綴聚合：每層把孩子路徑接上自己位址（`7` → `3-7` → … → `1-2-3-7`）。
-- **理由**：外設數量多時，若每個都佔一個 bus 位址會爆掉且與外部 MODBUS 設備衝突；改由 node 聚合、cache、以 MODBUS 暫存器對上呈現，定址乾淨、與 MODBUS 相容。（取代先前「外設＝一等公民可單獨定址」模型，見 [06 §N](06_設計決策與待確認.md)。）
+- **理由**：外設數量多時，若每個都佔一個 bus 位址會爆掉且與外部 MODBUS 設備衝突；改由 node 聚合、cache、**對上直接吐核心文字（§3.2）**，定址乾淨。（取代先前「外設＝一等公民可單獨定址」模型，見 [06 §N](06_設計決策與待確認.md)。）
 
 ### 4.1 傳輸分層（edge=MODBUS / core=私有）
 
 | 鏈路 | 格式 | master | 速度 |
 |---|---|---|---|
 | 末端 ↔ 外部外設（**尾段 adapter，可插拔**） | 預設 **MODBUS RTU**（非唯一） | 末端 | 115200 |
-| 末端 ↔ 中繼器（葉上行） | **MODBUS RTU**（末端 cache 值 = 暫存器） | 中繼器 | 依葉段 |
-| 中繼器 ↔ 中繼器／PC（骨幹） | **私有格式 `0xFE`** + `*<crc>\r` | 逐跳前綴 | **高速** |
+| 末端 → 中繼器（葉上行） | **核心文字(JSON)**，末端直接吐 | — | 依葉段 |
+| 中繼器 ↔ 中繼器／PC（骨幹） | **核心文字 `0xFE`** + `[*<crc>]\r` | 逐跳前綴 | **高速** |
 
-**第一台中繼器**把末端 MODBUS 讀值**轉成私有格式**、開始長 path。第一 byte 判別（`1-63`/`0xFF`=MODBUS、`0xFE`=私有）見 [02 §3.1](02_通訊協定.md)。
+**整條樹（末端→中繼器→PC）走核心文字、中繼器 0 轉譯**（只前綴 path + 可選 CRC）；MODBUS 只在末端↔外設（§6.1）。見 [02 §3.2](02_通訊協定.md)。
 
 > **v2 定架（[06 §O](06_設計決策與待確認.md)）**：頭/尾段皆**可插拔 adapter**——尾段協定預設 MODBUS 但不限、頭段傳輸含 WiFi(非陸製)；核心 RS485 不動。**定址改自動定址（ENUM 枚舉，DIP 拿掉，見 [10 §8](10_自動終端與拓樸.md)）**。node 身分/外設抓法仍靠 **JSON descriptor**（§6）——DIP 拿掉後，身分全由 descriptor + 型錄決定。
 
@@ -137,16 +137,14 @@ node descriptor
 - `regtype`↔role 對映：離散輸入(0x02)=DI 感測、線圈(0x01)=DO 輸出、輸入暫存器(0x04)=類比感測、保持暫存器(0x03/06)=類比輸出/設定點。Modicon 佈局 3xxxx/4xxxx。
 - ⚠️ **`word_order` + `scale` 必填**：MODBUS 字序/縮放錯會「靜默給錯數值、藏好幾個月」——一律在 descriptor 明寫。
 
-### 6.2 末端 → 中繼器的 MODBUS 暫存器佈局（提案，待確認）
+### 6.2 末端 → 中繼器 ＝ 直接吐核心文字（§3.2 定案）
 
-末端把 cache 的外設值以 **MODBUS 暫存器**呈現給中繼器輪詢。**佈局由末端自定義**（你之後拍板）；以下為預設提案：
+> 2026-11-01 改採 [02 §3.2](02_通訊協定.md) 的 **canonical 核心 + 邊界 adapter**：**末端把 cache 直接吐成核心文字（JSON）**上行，**中繼器 0 轉譯**（只前綴 path + 可選 CRC）。葉上行**不再**用 MODBUS 暫存器呈現。
 
-- 外設值依 descriptor 順序排進**輸入暫存器**（`3xxxx`，FC04）：外設0→30001、外設1→30002…（多字型別佔連續 word，`word_order` 隨 descriptor）。
-- 健康/狀態（`ok`/`up`/`rst`）另置一段保留暫存器；設定/`SET` 走**保持暫存器**（`4xxxx`，FC06/16）。
-- 中繼器一次 FC04 讀整塊 → 照 descriptor 還原 → 轉私有格式上骨幹。
-- DESC/JSON（首次+10s 存活）走 **`0xFE` 私有 frame**（MODBUS 暫存器塞不下 JSON）。
-
-> 標為**待確認**：確切起始位址、健康段位置、多字型別對齊由末端定案後補。
+- 末端按 descriptor 順序，把 cache 外設值串成 `0xFE <path>|{json}[*crc]\r` 直接上吐。
+- DESC（首次自描述）與 10s 存活檢查同走核心文字。
+- **MODBUS 只留在 §6.1 的「末端↔外部外設」**（尾段 adapter 內部，末端=master）。對外互通（讓外部 PLC/SCADA 讀）改在 **PC 頭段 adapter**（MODBUS-TCP），不在葉層。
+- 好處：中繼器通用純管道、換核心格式（JSON→KV）末端與 PC 各動一處、中繼器不動。
 
 ## 7. 外設與 Driver 模型
 
@@ -260,8 +258,8 @@ node descriptor
 
 ## 12. 對現有韌體的影響（僅記錄，本文不改碼）
 
-1. **中繼器**：down 對末端改當 **MODBUS master**（FC03/04 讀末端暫存器塊）；up 對骨幹送 **私有格式**；`up_baud ≠ down_baud`。
-2. **末端**：新增 **雙 MODBUS 角色**——up 當 **MODBUS slave**（把 cache 外設值/健康以暫存器呈現，§6.2）、down 當 **MODBUS master@115200** 讀外部外設（§6.1）；DESC/JSON 走 `0xFE` 私有 frame。
+1. **中繼器**：純管道——收末端吐的核心文字、前綴 path、存 cache、上層要就回；**不解析 payload**（§3.2 0 轉譯）；`up_baud ≠ down_baud`。
+2. **末端**：up **直接吐核心文字(JSON)**（§6.2）；down 當 **MODBUS master@115200** 讀外部外設（§6.1，尾段 adapter）；DESC/10s 心跳同走核心文字。
 3. **新增** driver 登錄表 + 背景取樣快取 + MODBUS master/slave 堆疊；`SET` 走保持暫存器/coil。
 4. **schema**：descriptor 擴 `peripherals[]` + 每項 `binding`（含 `modbus` 區塊）/`driver`。
 5. **協定庫**：啟用 CRC-16/MODBUS；第一 byte 判別（MODBUS vs `0xFE` 私有）。

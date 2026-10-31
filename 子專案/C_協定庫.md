@@ -3,12 +3,12 @@
 ## 目標
 把 `\n`/`\r` 框架與位址字串操作，抽成 **C++ 與 Python 兩份行為一致的庫**，當作所有模組的共用契約。
 
-> 契約定案（edge=MODBUS / core=私有）：協定庫要同時撐兩種框架——① **私有格式 `0xFE`**（骨幹，`<path>|<payload>*<crc>\r`）② **MODBUS RTU**（葉段/外設，addr+FC+data+CRC16）。第一 byte 判別用哪個。見 [docs/02 §3.1](../docs/02_通訊協定.md)、[06 §N](../docs/06_設計決策與待確認.md)。
+> 契約定案（[docs/02 §3.2](../docs/02_通訊協定.md) canonical 核心 + 邊界 adapter）：協定庫撐兩種框架——① **核心文字 `0xFE`**（整條樹，`<path>|<payload>[*<crc>]\r`，payload 透明）② **MODBUS RTU**（**只在末端↔外設**，addr+FC+data+CRC16）。第一 byte 判別用哪個。見 [06 §N/§O](../docs/06_設計決策與待確認.md)。
 
 ## 範圍
 - **要做（第一 byte 判別）**：讀入首 byte → `1-63`/`0xFF`=MODBUS、`0xFE`=私有，分派對應解析器。
 - **要做（私有格式）**：`\n` 續/`\r` 完整框架、`<path>|<payload>` 組裝/解析（payload 透明：CSV 值 / JSON）、`*<crc16>` **`\r` 前驗**、位址字串操作（前綴、切段、驗證 1–63，**path 到節點**）、跨語言測試向量。
-- **要做（MODBUS RTU）**：組/解 MODBUS 幀（addr/FC/data/CRC16-LH）、FC03/04/06/16 helper、廣播 `0xFF`。給末端(slave)、中繼器葉段(master) 共用。
+- **要做（MODBUS RTU，只給末端尾段 adapter）**：組/解 MODBUS 幀（addr/FC/data/CRC16-LH）、FC03/04/06/16 helper、廣播 `0xFF`。**只用在末端↔外部外設（末端=master）**；核心樹（末端→中繼器→PC）不走 MODBUS、走核心文字。
 - **要做（自動定址枚舉）**：`enumerate` 請求/回應框架 + 本地位址指派 helper（master 配序號、slave 回應）；配合 `ENUM` 腳時序（硬體腳在 A/B，協定庫只管訊息）。見 [10 §8](../docs/10_自動終端與拓樸.md)。
 - **要做（CRC 可選）**：**預留** `*<crc>` 槽與 `crc16()`，但 **`CRC_ENABLED` 預設 False**（初期不設、先跑通；後可加、不影響硬體）。開時 CRC-16/MODBUS、`test_vectors.json` 對齊 C++/Python（私有與 MODBUS 同多項式）。`feat/modbus` 已有實作可併入。
 - **不做**：任何感測器/UART/硬體邏輯（那是 A/B）。
