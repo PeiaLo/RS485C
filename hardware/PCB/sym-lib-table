@@ -1,0 +1,4 @@
+(sym_lib_table
+	(version 7)
+	(lib (name "RS485_C") (type "KiCad") (uri "${KIPRJMOD}/symbolLib/New_Library.kicad_sym") (options "") (descr "RS485_C 專案符號庫"))
+)

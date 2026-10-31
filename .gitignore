@@ -23,6 +23,7 @@ build/
 *.bin
 *.o
 *.d
+*.map
 
 # ---- MicroPython ----
 *.mpy
@@ -36,3 +37,13 @@ firmware/*/protocol.py
 *.log
 *.tmp
 ~$*
+
+# ---- KiCad（只追蹤原始檔：.kicad_pro/.sch/.pcb、庫表、.pretty、.kicad_sym） ----
+*-backups/
+.history/
+*.bak
+*-bak
+fp-info-cache
+~*.lck
+_autosave-*
+*.kicad_prl
