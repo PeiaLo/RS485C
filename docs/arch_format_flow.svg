@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 720" font-family="'Segoe UI','Microsoft JhengHei',sans-serif">
+  <defs>
+    <marker id="ah" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#495057"/>
+    </marker>
+    <marker id="ahg" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#2b8a3e"/>
+    </marker>
+    <marker id="aho" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#e8590c"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="1240" height="720" fill="#f8f9fa"/>
+  <text x="620" y="34" text-anchor="middle" font-size="22" font-weight="700" fill="#212529">RS485_C 格式／傳輸架構定案</text>
+  <text x="620" y="56" text-anchor="middle" font-size="13" fill="#868e96">edge=MODBUS（我讀 PLC）· 葉上行+backbone=CSV 文字 · PC 用 descriptor 還原成使用者格式</text>
+
+  <!-- 圖例 -->
+  <g font-size="12" fill="#495057">
+    <line x1="420" y1="78" x2="448" y2="78" stroke="#e8590c" stroke-width="3"/><text x="454" y="82">MODBUS</text>
+    <line x1="540" y1="78" x2="568" y2="78" stroke="#2b8a3e" stroke-width="3"/><text x="574" y="82">CSV 文字</text>
+    <line x1="668" y1="78" x2="696" y2="78" stroke="#1971c2" stroke-width="2" stroke-dasharray="5 3"/><text x="702" y="82">DESC (JSON)</text>
+  </g>
+
+  <!-- ① 資料流 -->
+  <text x="30" y="118" font-size="16" font-weight="700" fill="#212529">① 端到端資料流 —— 轉譯只在頭尾、中間零轉譯</text>
+
+  <!-- DESC 虛線（末端→PC） -->
+  <line x1="412" y1="150" x2="412" y2="132" stroke="#1971c2" stroke-width="1.5" stroke-dasharray="5 3"/>
+  <line x1="412" y1="132" x2="1092" y2="132" stroke="#1971c2" stroke-width="1.5" stroke-dasharray="5 3"/>
+  <line x1="1092" y1="132" x2="1092" y2="150" stroke="#1971c2" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#ah)"/>
+  <text x="752" y="127" text-anchor="middle" font-size="11" fill="#1971c2" font-weight="700">DESC (JSON) 首次：欄位序 / 型別 / 單位 / scale → PC 靠它還原 CSV</text>
+
+  <!-- 盒子 -->
+  <!-- 外部PLC -->
+  <rect x="30" y="155" width="160" height="115" rx="8" fill="#f1f3f5" stroke="#868e96" stroke-width="2"/>
+  <text x="110" y="180" text-anchor="middle" font-size="13" font-weight="700" fill="#495057">外部 PLC</text>
+  <text x="110" y="198" text-anchor="middle" font-size="12" fill="#495057">/ 感測模組</text>
+  <text x="110" y="224" text-anchor="middle" font-size="11" fill="#868e96">第三方</text>
+  <text x="110" y="240" text-anchor="middle" font-size="11" fill="#868e96">MODBUS slave</text>
+
+  <!-- 末端 -->
+  <rect x="315" y="155" width="195" height="115" rx="8" fill="#fff" stroke="#2b8a3e" stroke-width="2.5"/>
+  <text x="412" y="180" text-anchor="middle" font-size="13" font-weight="700" fill="#2b8a3e">末端（STM32）</text>
+  <text x="412" y="202" text-anchor="middle" font-size="11.5" fill="#343a40">MODBUS master 讀外設</text>
+  <text x="412" y="220" text-anchor="middle" font-size="11.5" fill="#343a40">→ 本地 cache</text>
+  <text x="412" y="244" text-anchor="middle" font-size="11.5" font-weight="700" fill="#2b8a3e">照 descriptor 串成 CSV</text>
+
+  <!-- 中繼器 -->
+  <rect x="645" y="155" width="195" height="115" rx="8" fill="#fff" stroke="#e8590c" stroke-width="2.5"/>
+  <text x="742" y="180" text-anchor="middle" font-size="13" font-weight="700" fill="#e8590c">中繼器 ×N（RP2040）</text>
+  <text x="742" y="204" text-anchor="middle" font-size="11.5" fill="#343a40">前綴 path + 重算 CRC</text>
+  <text x="742" y="224" text-anchor="middle" font-size="11.5" font-weight="700" fill="#e8590c">payload 不碰 = 不轉譯</text>
+  <text x="742" y="246" text-anchor="middle" font-size="10.5" fill="#868e96">MicroPython 純字串前綴、最輕</text>
+
+  <!-- PC -->
+  <rect x="975" y="155" width="235" height="115" rx="8" fill="#e7f5ff" stroke="#1971c2" stroke-width="2.5"/>
+  <text x="1092" y="180" text-anchor="middle" font-size="13" font-weight="700" fill="#1971c2">PC（Python）</text>
+  <text x="1092" y="202" text-anchor="middle" font-size="11.5" font-weight="700" fill="#1971c2">descriptor 還原 CSV</text>
+  <text x="1092" y="220" text-anchor="middle" font-size="11.5" fill="#343a40">→ 使用者格式（貼回名稱/單位）</text>
+  <text x="1092" y="240" text-anchor="middle" font-size="10.5" fill="#495057">JSON / 表格 / 工程值</text>
+  <text x="1092" y="256" text-anchor="middle" font-size="10.5" fill="#868e96">選配：MODBUS gateway → SCADA</text>
+
+  <!-- 箭頭 + 標籤 -->
+  <line x1="192" y1="212" x2="312" y2="212" stroke="#e8590c" stroke-width="3" marker-end="url(#aho)"/>
+  <text x="252" y="203" text-anchor="middle" font-size="11" font-weight="700" fill="#e8590c">MODBUS RTU</text>
+  <text x="252" y="228" text-anchor="middle" font-size="10" fill="#868e96">我讀 PLC</text>
+
+  <line x1="512" y1="212" x2="642" y2="212" stroke="#2b8a3e" stroke-width="3" marker-end="url(#ahg)"/>
+  <text x="577" y="203" text-anchor="middle" font-size="11" font-weight="700" fill="#2b8a3e">CSV 文字</text>
+  <text x="577" y="228" text-anchor="middle" font-size="10" fill="#868e96">末端吐</text>
+
+  <line x1="842" y1="212" x2="972" y2="212" stroke="#2b8a3e" stroke-width="3" marker-end="url(#ahg)"/>
+  <text x="907" y="203" text-anchor="middle" font-size="11" font-weight="700" fill="#2b8a3e">CSV backbone</text>
+  <text x="907" y="228" text-anchor="middle" font-size="10" fill="#868e96">純前綴 path</text>
+
+  <!-- 轉譯盤點 pills -->
+  <rect x="330" y="285" width="165" height="26" rx="13" fill="#ebfbee" stroke="#2b8a3e"/>
+  <text x="412" y="302" text-anchor="middle" font-size="11.5" font-weight="700" fill="#2b8a3e">① 格式化 cache→CSV</text>
+  <rect x="663" y="285" width="160" height="26" rx="13" fill="#fff4e6" stroke="#e8590c"/>
+  <text x="743" y="302" text-anchor="middle" font-size="11.5" font-weight="700" fill="#e8590c">⓪ 不轉譯（前綴+CRC）</text>
+  <rect x="990" y="285" width="205" height="26" rx="13" fill="#e7f5ff" stroke="#1971c2"/>
+  <text x="1092" y="302" text-anchor="middle" font-size="11.5" font-weight="700" fill="#1971c2">① 還原 CSV→使用者格式</text>
+
+  <!-- ② 幀格式 -->
+  <text x="30" y="352" font-size="16" font-weight="700" fill="#212529">② backbone 幀格式（CSV）</text>
+  <rect x="30" y="366" width="580" height="78" rx="6" fill="#fff" stroke="#dee2e6"/>
+  <text x="48" y="400" font-size="17" font-family="Consolas,'Courier New',monospace" fill="#212529">0xFE 1-2-3-7|25.1,3.2,1013*A3F1\r</text>
+  <g font-size="10.5" fill="#868e96">
+    <text x="92" y="420">第一byte=私有</text>
+    <text x="196" y="420" fill="#2b8a3e">path(逐跳前綴)</text>
+    <text x="330" y="420" fill="#1971c2">值(descriptor定序 CSV)</text>
+    <text x="500" y="420" fill="#e03131">CRC-16</text>
+    <text x="558" y="420">框架</text>
+  </g>
+  <text x="48" y="436" font-size="10.5" fill="#868e96">CRC-16/MODBUS 每跳重算（`\r` 前驗）；第一 byte 判別可與 MODBUS/未來二進位並存</text>
+
+  <!-- ③ 決策摘要 -->
+  <text x="650" y="352" font-size="16" font-weight="700" fill="#212529">③ 關鍵決策</text>
+  <rect x="650" y="366" width="560" height="78" rx="6" fill="#fff" stroke="#dee2e6"/>
+  <g font-size="11.5" fill="#343a40">
+    <text x="664" y="387">• <tspan font-weight="700">MODBUS 只在「末端↔外設」</tspan>（我讀 PLC）；葉上行改文字 → 省掉末端 slave/暫存器佈局。</text>
+    <text x="664" y="406">• <tspan font-weight="700">backbone 走 CSV</tspan>：自描述不需要（標籤 PC 還原）；二進位不用，速度靠拉 baud。</text>
+    <text x="664" y="425">• <tspan font-weight="700">呈現層在 PC、與傳輸分離</tspan>：隨時換格式、不動線上；SCADA 走選配 gateway。</text>
+    <text x="664" y="438" font-size="10" fill="#868e96"> </text>
+  </g>
+
+  <!-- ④ 三種 JSON/資料用途 + 與現況 -->
+  <text x="30" y="482" font-size="16" font-weight="700" fill="#212529">④ 資料用途 ＆ 與現況關係</text>
+  <rect x="30" y="496" width="1180" height="128" rx="6" fill="#fff" stroke="#dee2e6"/>
+  <g font-size="12" fill="#343a40">
+    <text x="46" y="520"><tspan font-weight="700" fill="#1971c2">組態 descriptor（JSON）</tspan>：身分 + 外設 MODBUS 抓法 + 欄位序/型別/單位/scale。少送、自描述、大小無所謂。PC 靠它還原 CSV。</text>
+    <text x="46" y="544"><tspan font-weight="700" fill="#2b8a3e">量測資料（CSV）</tspan>：熱路徑、每輪跑。末端照 descriptor 串出 `v1,v2,…`；中繼器只前綴；PC 貼回標籤。</text>
+    <text x="46" y="568"><tspan font-weight="700">轉譯盤點</tspan>：頭（末端 cache→CSV ×1）＋ 尾（PC CSV→使用者格式 ×1）＝ 共 2；<tspan font-weight="700" fill="#e8590c">中間中繼器 0 次</tspan>。</text>
+    <text x="46" y="596"><tspan font-weight="700">與現況 3R3T</tspan>：3R3T 已驗（全程 JSON、無外設）。本定案 = 3R3T 模型 + ① 末端加 MODBUS master 讀外設 + ② payload JSON→CSV、PC 還原。</text>
+    <text x="46" y="616" font-size="11" fill="#868e96">CRC-16/MODBUS 已實作於 feat/modbus；backbone CSV 的 *&lt;crc&gt;\r 直接沿用。</text>
+  </g>
+</svg>
